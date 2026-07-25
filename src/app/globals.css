@@ -366,9 +366,9 @@ body:has(.play-page) > div > main { min-height: 0; }
 .active-cards .playing-card:first-child { margin-left: 0; }
 .open-table { display: grid; place-items: center; width: 280px; height: 130px; border: 1px dashed #565a57; color: #696d6a; font-size: 9px; font-weight: 900; letter-spacing: .16em; }
 .human-zone { min-width: 0; position: relative; z-index: 2; display: flex; flex-direction: column; padding: 0 38px 12px; }
-.game-keyboard-guide { width: 100%; min-height: 27px; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; gap: 6px; margin: 4px auto 0; padding: 4px 10px; border: 1px solid #3f433f; background: #0c0e0d; color: #8e928f; overflow-x: auto; white-space: nowrap; font-size: 6px; font-weight: 900; letter-spacing: .08em; }
-.game-keyboard-guide i { flex: 0 0 1px; width: 1px; height: 13px; margin-inline: 4px; background: #454945; }
-.game-keyboard-guide kbd { min-width: 18px; min-height: 16px; padding: 1px 4px; font-size: 6px; }
+.game-keyboard-guide { width: auto; max-width: 100%; min-height: 16px; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; gap: 4px; margin: 2px auto 0; padding: 0; border: 0; background: transparent; color: #666a67; overflow-x: auto; white-space: nowrap; font-size: 5px; font-weight: 900; letter-spacing: .08em; opacity: .68; }
+.game-keyboard-guide i { flex: 0 0 1px; width: 1px; height: 8px; margin-inline: 3px; background: #3a3d3b; }
+.game-keyboard-guide kbd { min-width: 14px; min-height: 12px; padding: 1px 3px; border-color: #464a47; background: transparent; color: #747875; font-size: 5px; }
 .possible-plays { width: min(820px, calc(100% - 70px)); min-height: 42px; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 15px; margin: 6px auto 0; padding: 5px 8px 5px 13px; border: 1px solid #3f433f; background: rgba(13,15,14,.92); }
 .possible-plays-label { display: grid; gap: 2px; padding-right: 14px; border-right: 1px solid #3f433f; white-space: nowrap; }
 .possible-plays-label span { color: #b6bab6; font-size: 7px; font-weight: 900; letter-spacing: .14em; }
@@ -588,7 +588,7 @@ kbd { display: inline-grid; place-items: center; min-width: 22px; min-height: 19
   .card-corner { font-size: 16px; }
   .human-hand .card-corner small { margin-top: 5px; font-size: 14px; }
   .possible-plays { width: 100%; grid-template-columns: auto minmax(0, 1fr); gap: 8px; margin-top: 5px; padding-left: 9px; }
-  .game-keyboard-guide { width: 100%; justify-content: flex-start; }
+  .game-keyboard-guide { justify-content: flex-start; }
   .possible-plays-label { padding-right: 8px; }
   .possible-plays-label small { display: none; }
   .possible-play-option { min-height: 34px; font-size: 15px; }
