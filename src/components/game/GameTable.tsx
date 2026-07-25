@@ -85,6 +85,14 @@ interface DrawAnimation {
 	count: number
 }
 
+interface SuggestedPlay {
+	id: string
+	label: string
+	cards: PlayingCard[]
+}
+
+type NavigationZone = 'actions' | 'combos' | 'cards'
+
 interface ComputerTurnStep {
 	wait: number
 	state: GameState
@@ -101,6 +109,27 @@ function countName(count: number): string {
 	if (count === 3) return 'TRIPLE'
 	if (count === 4) return 'FOUR OF A KIND'
 	return `${count}-CARD LEVEL`
+}
+
+function suggestedPlaysFor(hand: PlayingCard[], activeRank: Rank | null, activeCount: number): SuggestedPlay[] {
+	if (!activeRank || activeCount < 1) return []
+	const activeValue = rankValue(activeRank)
+	const plays: SuggestedPlay[] = []
+
+	for (const rank of RANKS) {
+		const matching = hand.filter((card) => card.rank === rank)
+		if (rank === activeRank) {
+			for (let count = 1; count <= matching.length; count += 1) {
+				const cards = matching.slice(0, count)
+				plays.push({ id: `${rank}-${count}`, label: count === 1 ? rank : `${count} × ${rank}`, cards })
+			}
+		} else if (rankValue(rank) > activeValue && matching.length >= activeCount) {
+			const cards = matching.slice(0, activeCount)
+			plays.push({ id: `${rank}-${activeCount}`, label: activeCount === 1 ? rank : `${activeCount} × ${rank}`, cards })
+		}
+	}
+
+	return plays
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -540,7 +569,9 @@ export function GameTable() {
 	const [feedback, setFeedback] = useState<TableFeedback | null>(null)
 	const [drawAnimation, setDrawAnimation] = useState<DrawAnimation | null>(null)
 	const [gameMemoryReady, setGameMemoryReady] = useState(false)
+	const gameConsoleRef = useRef<HTMLDivElement | null>(null)
 	const handCardRefs = useRef<Array<HTMLButtonElement | null>>([])
+	const zoneIndexRef = useRef<Record<NavigationZone, number>>({ actions: 0, combos: 0, cards: 0 })
 	const feedbackTimerRef = useRef<number | null>(null)
 	const drawTimerRef = useRef<number | null>(null)
 	const eventIdRef = useRef(0)
@@ -550,6 +581,10 @@ export function GameTable() {
 	const selectedCards = useMemo(
 		() => game.human.filter((card) => selected.includes(card.id)),
 		[game.human, selected],
+	)
+	const suggestedPlays = useMemo(
+		() => suggestedPlaysFor(game.human, game.activeRank, game.activeCards.length),
+		[game.activeCards.length, game.activeRank, game.human],
 	)
 	const legalSelection = game.phase === 'exchange'
 		? selectedCards.length === 1
@@ -840,9 +875,53 @@ export function GameTable() {
 		}, 1100)
 	}
 
+	function selectSuggestedPlay(play: SuggestedPlay) {
+		if (game.phase !== 'playing' || game.turn !== 'human') return
+		const cardIds = play.cards.map((card) => card.id)
+		const alreadySelected = selected.length === cardIds.length && cardIds.every((id) => selected.includes(id))
+		setSelected(alreadySelected ? [] : cardIds)
+	}
+
+	function elementsInZone(zone: NavigationZone): HTMLButtonElement[] {
+		const selector = zone === 'actions'
+			? '.hand-command-actions button:not(:disabled)'
+			: zone === 'combos'
+				? '.possible-play-option:not(:disabled)'
+				: '.human-hand button.playing-card:not(:disabled)'
+		return Array.from(gameConsoleRef.current?.querySelectorAll<HTMLButtonElement>(selector) ?? [])
+	}
+
+	function navigationZoneFor(element: HTMLElement | null): NavigationZone | null {
+		if (element?.closest('.hand-command-actions')) return 'actions'
+		if (element?.closest('.possible-play-options')) return 'combos'
+		if (element?.closest('.human-hand')) return 'cards'
+		return null
+	}
+
+	function focusZoneItem(zone: NavigationZone, requestedIndex: number) {
+		const elements = elementsInZone(zone)
+		if (elements.length === 0) return false
+		const normalizedIndex = (requestedIndex + elements.length) % elements.length
+		zoneIndexRef.current[zone] = normalizedIndex
+		if (zone === 'cards') setFocusedCardIndex(normalizedIndex)
+		window.requestAnimationFrame(() => elements[normalizedIndex]?.focus())
+		return true
+	}
+
+	function moveBetweenZones(currentZone: NavigationZone, direction: -1 | 1, preferredIndex: number) {
+		const zones: NavigationZone[] = ['actions', 'combos', 'cards']
+		let zoneIndex = zones.indexOf(currentZone) + direction
+		while (zoneIndex >= 0 && zoneIndex < zones.length) {
+			const nextZone = zones[zoneIndex]!
+			if (focusZoneItem(nextZone, Math.min(preferredIndex, Math.max(0, elementsInZone(nextZone).length - 1)))) return
+			zoneIndex += direction
+		}
+	}
+
 	function moveHandFocus(nextIndex: number) {
 		if (game.human.length === 0) return
 		const normalizedIndex = (nextIndex + game.human.length) % game.human.length
+		zoneIndexRef.current.cards = normalizedIndex
 		setFocusedCardIndex(normalizedIndex)
 		window.requestAnimationFrame(() => handCardRefs.current[normalizedIndex]?.focus())
 	}
@@ -854,6 +933,8 @@ export function GameTable() {
 
 			const target = event.target as HTMLElement | null
 			const focusedCard = target?.closest('.human-hand .playing-card')
+			const focusedCombo = target?.closest<HTMLButtonElement>('.possible-play-option')
+			const focusedZone = navigationZoneFor(target)
 			if (target?.closest('input, textarea, select')) return
 
 			const key = event.key.toLowerCase()
@@ -877,12 +958,23 @@ export function GameTable() {
 				startNextGame()
 				return
 			}
-			if (target?.closest('input, textarea, select, a, button') && !focusedCard) return
-
-			if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
+			if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
 				event.preventDefault()
-				const direction = event.key === 'ArrowRight' || event.key === 'ArrowDown' ? 1 : -1
-				moveHandFocus(focusedCard ? focusedCardIndex + direction : focusedCardIndex)
+				const zone = focusedZone ?? 'cards'
+				const elements = elementsInZone(zone)
+				const focusedElement = target?.closest<HTMLButtonElement>('button') ?? null
+				const currentIndex = focusedElement ? Math.max(0, elements.indexOf(focusedElement)) : zoneIndexRef.current[zone]
+				focusZoneItem(zone, currentIndex + (event.key === 'ArrowRight' ? 1 : -1))
+				return
+			}
+			if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+				event.preventDefault()
+				const zone = focusedZone ?? 'cards'
+				const elements = elementsInZone(zone)
+				const focusedElement = target?.closest<HTMLButtonElement>('button') ?? null
+				const currentIndex = focusedElement ? Math.max(0, elements.indexOf(focusedElement)) : zoneIndexRef.current[zone]
+				zoneIndexRef.current[zone] = currentIndex
+				moveBetweenZones(zone, event.key === 'ArrowDown' ? 1 : -1, currentIndex)
 				return
 			}
 			if (event.key === 'Home' || event.key === 'End') {
@@ -890,18 +982,24 @@ export function GameTable() {
 				moveHandFocus(event.key === 'Home' ? 0 : game.human.length - 1)
 				return
 			}
-			if (event.key === ' ') {
+			if (event.key === ' ' && focusedCard) {
 				event.preventDefault()
 				const card = game.human[focusedCardIndex]
 				if (card) toggleCard(card)
 				return
 			}
-			if (event.key === 'Enter') {
+			if (event.key === 'Enter' && focusedCard) {
 				event.preventDefault()
-				if (game.phase === 'exchange') returnExchangeCard()
-				else humanPlay()
+				const card = game.human[focusedCardIndex]
+				if (card) toggleCard(card)
 				return
 			}
+			if (event.key === 'Enter' && focusedCombo) {
+				event.preventDefault()
+				focusedCombo.click()
+				return
+			}
+			if (target?.closest('input, textarea, select, a, button')) return
 		}
 
 		document.addEventListener('keydown', handleTableKeyDown)
@@ -927,6 +1025,11 @@ export function GameTable() {
 						: { label: 'GUIDED MOVE 3 / 4', title: 'BLUFF THE DRAW.', body: `Press D or “DRAW ${game.activeCards.length}.” Once the cards arrive, choose whether to play or pass.` }
 					: { label: 'GUIDED MOVE 4 / 4', title: 'COME BACK NOW—or LATER.', body: 'The draw completed a legal response. Play the glowing set immediately, or decline and wait for the sequence to return.' }
 	const briefing = BRIEFING_STEPS[briefingStep]!
+	const showSuggestedPlays = game.phase === 'playing'
+		&& game.turn === 'human'
+		&& Boolean(game.activeRank)
+		&& onboardingMode !== 'guided'
+		&& suggestedPlays.length > 0
 	const selectionMessage = selectedCards.length === 0
 		? game.awaitingDecision && game.turn === 'human'
 			? 'Select a legal response to continue—or reset the table and open with anything.'
@@ -939,7 +1042,7 @@ export function GameTable() {
 	const turnControl = game.phase === 'game-over' ? (
 		<div className="hand-command-bar game-result" aria-label="Game result">
 			<div className="hand-command-copy"><small>FINAL STATUS</small><strong>{game.winner === 'human' ? 'YOU GOT OUT.' : 'YOU WERE LEFT BEHIND.'}</strong><p>{game.winner === 'human' ? 'The Machine surrenders its best card next game.' : 'Your best card belongs to the Machine next game.'}</p></div>
-			<div className="hand-command-actions"><button className="machine-button primary" onClick={startNextGame} aria-keyshortcuts="N">PLAY NEXT GAME <kbd>N</kbd></button></div>
+			<div className="hand-command-actions"><button className="machine-button primary" onClick={startNextGame} aria-keyshortcuts="Enter N">PLAY NEXT GAME <kbd>ENTER</kbd></button></div>
 		</div>
 	) : game.phase === 'exchange' ? (
 		<div className="hand-command-bar" aria-label="Card exchange controls">
@@ -951,20 +1054,20 @@ export function GameTable() {
 			<div className="hand-command-copy" aria-live="polite"><small>{canRestartNow ? 'YOU CONTROL THE TABLE' : game.turn === 'human' ? 'YOUR COMMAND' : 'OPPONENT ACTIVE'}</small><strong>{selectedCards.length > 0 ? `${selectedCards.length} × ${selectedCards[0]?.rank ?? ''}` : canRestartNow ? 'PLAY OR RESET' : game.turn === 'human' ? 'MAKE YOUR MOVE' : 'STAND BY'}</strong><p>{selectionMessage}</p></div>
 			<div className="hand-command-actions">
 					<button className={`machine-button primary ${onboardingMode === 'guided' && [0, 1, 3].includes(coachStage) ? 'coach-target' : ''}`} disabled={!canPlayNow} onClick={humanPlay} aria-keyshortcuts="Enter">PLAY SELECTED <kbd>ENTER</kbd></button>
-					{canRestartNow && <button className="machine-button" onClick={restartForHuman} aria-keyshortcuts="R">RESET TABLE <kbd>R</kbd></button>}
+					{canRestartNow && <button className="machine-button" onClick={restartForHuman} aria-keyshortcuts="Enter R">RESET TABLE <kbd>ENTER</kbd></button>}
 					{canDrawNow && (
-						<button className={`machine-button warning ${onboardingMode === 'guided' && coachStage === 2 ? 'coach-target' : ''}`} onClick={humanDraw} aria-keyshortcuts="D">DRAW {game.activeCards.length} <kbd>D</kbd></button>
+						<button className={`machine-button warning ${onboardingMode === 'guided' && coachStage === 2 ? 'coach-target' : ''}`} onClick={humanDraw} aria-keyshortcuts="Enter D">DRAW {game.activeCards.length} <kbd>ENTER</kbd></button>
 					)}
-				{canPassNow && onboardingMode !== 'guided' && <button className="machine-button" onClick={humanPass} aria-keyshortcuts="Escape">PASS TURN <kbd>ESC</kbd></button>}
+				{canPassNow && onboardingMode !== 'guided' && <button className="machine-button" onClick={humanPass} aria-keyshortcuts="Enter Escape">PASS TURN <kbd>ENTER</kbd></button>}
 				{game.activeRank && game.turn === 'human' && game.humanHasDrawn && onboardingMode === 'guided' && !game.forcedContinuation && (
-					<button className={coachStage === 3 ? 'machine-button coach-target-secondary' : 'machine-button'} onClick={humanDecline} aria-keyshortcuts="Escape">I&apos;LL BE BACK LATER <kbd>ESC</kbd></button>
+					<button className={coachStage === 3 ? 'machine-button coach-target-secondary' : 'machine-button'} onClick={humanDecline} aria-keyshortcuts="Enter Escape">I&apos;LL BE BACK LATER <kbd>ENTER</kbd></button>
 				)}
 			</div>
 		</div>
 	)
 
 	return (
-		<div className="game-console">
+		<div className="game-console" ref={gameConsoleRef}>
 			{onboardingMode === 'checking' && (
 				<div className="onboarding-shade onboarding-loading" aria-live="polite" aria-busy="true">
 					<span>RESTORING PLAYER MEMORY…</span>
@@ -1066,15 +1169,27 @@ export function GameTable() {
 					<div className="human-zone">
 						<div className="zone-label"><span>YOUR HAND</span><b>{game.human.length} cards</b></div>
 						{turnControl}
+						{showSuggestedPlays && (
+							<div className="possible-plays" aria-label="Possible plays from your hand">
+								<div className="possible-plays-label"><span>POSSIBLE PLAYS</span><small>↑ ACTIONS · ↓ CARDS</small></div>
+								<div className="possible-play-options">
+									{suggestedPlays.map((play) => {
+										const active = selected.length === play.cards.length && play.cards.every((card) => selected.includes(card.id))
+										return <button key={play.id} type="button" className={`possible-play-option ${active ? 'is-active' : ''}`} aria-pressed={active} onClick={() => selectSuggestedPlay(play)}><span>[</span><b>{play.label}</b><span>]</span></button>
+									})}
+								</div>
+							</div>
+						)}
 					<div className="human-hand" role="group" aria-label="Your hand. Swipe or use the arrow keys to move through cards.">
 						<span className="mobile-hand-hint" aria-hidden="true">SWIPE HAND ↔</span>
+						<span className="card-keyboard-helper" aria-hidden="true"><kbd>←</kbd><kbd>→</kbd> MOVE <i /> <kbd>SPACE</kbd> OR <kbd>ENTER</kbd> SELECT <i /> <kbd>↑</kbd> OPTIONS</span>
 						{game.human.map((card, index) => (
 								<PlayingCardView
 									key={card.id}
 									card={card}
 									buttonRef={(element) => { handCardRefs.current[index] = element }}
 									tabIndex={index === focusedCardIndex ? 0 : -1}
-									onFocus={() => setFocusedCardIndex(index)}
+									onFocus={() => { setFocusedCardIndex(index); zoneIndexRef.current.cards = index }}
 									selected={selected.includes(card.id)}
 									coached={onboardingMode === 'guided' && coachedCardIds.has(card.id) && game.turn === 'human'}
 									dimmed={onboardingMode === 'guided' && game.turn === 'human' && !coachedCardIds.has(card.id)}
