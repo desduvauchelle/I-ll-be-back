@@ -18,6 +18,8 @@ import {
 type Player = 'human' | 'cpu'
 type Phase = 'playing' | 'exchange' | 'game-over'
 type OnboardingMode = 'checking' | 'prompt' | 'briefing' | 'guided' | 'complete' | 'off'
+type FeedbackSide = Player | 'center'
+type FeedbackTone = 'impact' | 'warning' | 'move'
 
 const ONBOARDING_STORAGE_KEY = 'ill-be-back:onboarding:v1'
 
@@ -56,8 +58,51 @@ interface GameState {
 	log: string[]
 }
 
+interface FeedbackCue {
+	side: FeedbackSide
+	tone: FeedbackTone
+	label: string
+	title: string
+	detail: string
+}
+
+interface TableFeedback extends FeedbackCue {
+	id: number
+}
+
+interface DrawAnimation {
+	id: number
+	player: Player
+	count: number
+}
+
+interface ComputerTurnStep {
+	wait: number
+	state: GameState
+	cue: FeedbackCue
+	drawCount?: number
+}
+
 const otherPlayer = (player: Player): Player => player === 'human' ? 'cpu' : 'human'
 const playerName = (player: Player): string => player === 'human' ? 'You' : 'The Machine'
+
+function countName(count: number): string {
+	if (count === 1) return 'SINGLE'
+	if (count === 2) return 'PAIR'
+	if (count === 3) return 'TRIPLE'
+	if (count === 4) return 'FOUR OF A KIND'
+	return `${count}-CARD LEVEL`
+}
+
+function levelUpCue(player: Player, rank: Rank, previousCount: number, nextCount: number): FeedbackCue {
+	return {
+		side: 'center',
+		tone: 'impact',
+		label: `COUNT LEVEL ${previousCount} → ${nextCount}`,
+		title: player === 'human' ? 'BAM. I’LL BE BACK.' : 'COUNT LEVEL UP.',
+		detail: `${countName(nextCount)} OF ${rank}s LOCKED. ${playerName(otherPlayer(player)).toUpperCase()} MUST ANSWER WITH ${nextCount}.`,
+	}
+}
 
 function addLog(state: GameState, message: string): GameState {
 	return { ...state, log: [message, ...state.log].slice(0, 7) }
@@ -230,14 +275,26 @@ function restartSequence(state: GameState, player: Player): GameState {
 	}, `${playerName(player)} cleared the table and controls the restart.`)
 }
 
-function runComputerTurn(input: GameState): GameState {
-	if (input.phase !== 'playing' || input.turn !== 'cpu') return input
+function planComputerTurn(input: GameState): ComputerTurnStep[] {
+	if (input.phase !== 'playing' || input.turn !== 'cpu') return []
 	let state = input
+	const steps: ComputerTurnStep[] = []
 
 	if (state.awaitingDecision) {
 		const continuation = chooseComputerPlay(state.cpu, state.activeRank, state.activeCards.length)
 		if (!continuation || Math.random() < 0.34) {
 			state = restartSequence(state, 'cpu')
+			steps.push({
+				wait: 520,
+				state,
+				cue: {
+					side: 'cpu',
+					tone: 'move',
+					label: 'SEQUENCE RETURNED',
+					title: 'TABLE RESET.',
+					detail: 'THE MACHINE CLEARS THE CARDS AND OPENS AGAIN.',
+				},
+			})
 		} else {
 			state = addLog({ ...state, awaitingDecision: false }, 'The Machine keeps the sequence alive.')
 		}
@@ -249,12 +306,73 @@ function runComputerTurn(input: GameState): GameState {
 	if (bluffDraw) {
 		const result = drawCards(state, 'cpu')
 		state = addLog(result.state, `The Machine claims it cannot play and draws ${result.drawn.length}.`)
+		steps.push({
+			wait: steps.length > 0 ? 900 : 520,
+			state,
+			drawCount: result.drawn.length,
+			cue: {
+				side: 'cpu',
+				tone: 'warning',
+				label: 'THE MACHINE',
+				title: 'CAN’T PLAY.',
+				detail: `DRAWING ${result.drawn.length}. WATCH THE PILE.`,
+			},
+		})
 		play = chooseComputerPlay(state.cpu, state.activeRank, state.activeCards.length)
-		if (!play || Math.random() < 0.18) return declineTurn(state, 'cpu')
+		if (!play || Math.random() < 0.18) {
+			state = declineTurn(state, 'cpu')
+			steps.push({
+				wait: 1500,
+				state,
+				cue: {
+					side: 'cpu',
+					tone: 'warning',
+					label: 'NO RESCUE PLAY',
+					title: 'I’LL BE BACK.',
+					detail: 'THE MACHINE PASSES. YOUR MOVE.',
+				},
+			})
+			return steps
+		}
 		state = addLog(state, 'The Machine says: “I’ll be back.”')
 	}
 
-	return play ? playCards(state, 'cpu', play) : declineTurn(state, 'cpu')
+	if (!play) {
+		state = declineTurn(state, 'cpu')
+		steps.push({
+			wait: steps.length > 0 ? 1250 : 620,
+			state,
+			cue: {
+				side: 'cpu',
+				tone: 'warning',
+				label: 'NO LEGAL RESPONSE',
+				title: 'CAN’T PLAY.',
+				detail: 'THE MACHINE PASSES. YOUR MOVE.',
+			},
+		})
+		return steps
+	}
+
+	const rank = play[0]!.rank
+	const previousCount = state.activeCards.length
+	const reinforcesRank = state.activeRank === rank
+	const nextCount = reinforcesRank ? previousCount + play.length : play.length
+	state = playCards(state, 'cpu', play)
+	steps.push({
+		wait: bluffDraw ? 1450 : steps.length > 0 ? 1000 : 680,
+		state,
+		cue: reinforcesRank
+			? levelUpCue('cpu', rank, previousCount, nextCount)
+			: {
+				side: 'cpu',
+				tone: 'move',
+				label: bluffDraw ? 'RESCUE PLAY' : 'COUNTERPLAY',
+				title: bluffDraw ? 'BACK IN THE FIGHT.' : `${play.length} × ${rank}.`,
+				detail: `THE MACHINE PLAYS ${play.length} × ${rank}. ${state.phase === 'game-over' ? 'HAND EMPTY.' : 'YOUR MOVE.'}`,
+			},
+	})
+
+	return steps
 }
 
 const BRIEFING_STEPS = [
@@ -348,7 +466,14 @@ export function GameTable() {
 	const [briefingStep, setBriefingStep] = useState(0)
 	const [coachStage, setCoachStage] = useState(0)
 	const [focusedCardIndex, setFocusedCardIndex] = useState(0)
+	const [feedback, setFeedback] = useState<TableFeedback | null>(null)
+	const [drawAnimation, setDrawAnimation] = useState<DrawAnimation | null>(null)
 	const handCardRefs = useRef<Array<HTMLButtonElement | null>>([])
+	const feedbackTimerRef = useRef<number | null>(null)
+	const drawTimerRef = useRef<number | null>(null)
+	const eventIdRef = useRef(0)
+	const cpuSequenceIdRef = useRef(0)
+	const cpuTimeoutsRef = useRef<number[]>([])
 
 	const selectedCards = useMemo(
 		() => game.human.filter((card) => selected.includes(card.id)),
@@ -383,9 +508,44 @@ export function GameTable() {
 	useEffect(() => {
 		if (game.phase !== 'playing' || game.turn !== 'cpu') return
 		if (onboardingMode === 'checking' || onboardingMode === 'prompt' || onboardingMode === 'briefing') return
-		const timer = window.setTimeout(() => animateTableUpdate(() => setGame((current) => runComputerTurn(current))), 640)
-		return () => window.clearTimeout(timer)
+		if (cpuSequenceIdRef.current !== 0) return
+
+		const steps = planComputerTurn(game)
+		if (steps.length === 0) return
+
+		const sequenceId = ++eventIdRef.current
+		cpuSequenceIdRef.current = sequenceId
+		let elapsed = 0
+
+		steps.forEach((step, index) => {
+			elapsed += step.wait
+			const timer = window.setTimeout(() => {
+				if (cpuSequenceIdRef.current !== sequenceId) return
+				const isLastStep = index === steps.length - 1
+				if (isLastStep) cpuSequenceIdRef.current = 0
+
+				if (step.drawCount) {
+					startDrawAnimation('cpu', step.drawCount)
+					announceFeedback(step.cue, 1800)
+					const commitTimer = window.setTimeout(() => {
+						animateTableUpdate(() => setGame(step.state))
+					}, 320)
+					cpuTimeoutsRef.current.push(commitTimer)
+				} else {
+					animateTableUpdate(() => setGame(step.state))
+					announceFeedback(step.cue, step.cue.tone === 'impact' ? 2100 : 1650)
+				}
+			}, elapsed)
+			cpuTimeoutsRef.current.push(timer)
+		})
 	}, [game.phase, game.turn, game.awaitingDecision, game.activeCards.length, game.cpu.length, onboardingMode])
+
+	useEffect(() => () => {
+		cpuTimeoutsRef.current.forEach((timer) => window.clearTimeout(timer))
+		if (feedbackTimerRef.current) window.clearTimeout(feedbackTimerRef.current)
+		if (drawTimerRef.current) window.clearTimeout(drawTimerRef.current)
+		cpuSequenceIdRef.current = 0
+	}, [])
 
 	useEffect(() => {
 		if (game.turn !== 'human') setSelected([])
@@ -403,6 +563,31 @@ export function GameTable() {
 		setSelected((current) => current.includes(card.id)
 			? current.filter((id) => id !== card.id)
 			: [...current, card.id])
+	}
+
+	function announceFeedback(cue: FeedbackCue, duration = 1700) {
+		if (feedbackTimerRef.current) window.clearTimeout(feedbackTimerRef.current)
+		const id = ++eventIdRef.current
+		setFeedback({ ...cue, id })
+		feedbackTimerRef.current = window.setTimeout(() => {
+			setFeedback((current) => current?.id === id ? null : current)
+		}, duration)
+	}
+
+	function startDrawAnimation(player: Player, count: number) {
+		if (count < 1) return
+		if (drawTimerRef.current) window.clearTimeout(drawTimerRef.current)
+		const id = ++eventIdRef.current
+		setDrawAnimation({ id, player, count })
+		drawTimerRef.current = window.setTimeout(() => {
+			setDrawAnimation((current) => current?.id === id ? null : current)
+		}, 1250)
+	}
+
+	function cancelComputerSequence() {
+		cpuTimeoutsRef.current.forEach((timer) => window.clearTimeout(timer))
+		cpuTimeoutsRef.current = []
+		cpuSequenceIdRef.current = 0
 	}
 
 	function rememberOnboarding() {
@@ -424,12 +609,17 @@ export function GameTable() {
 	}
 
 	function replayTraining() {
+		cancelComputerSequence()
 		setBriefingStep(0)
 		setOnboardingMode('briefing')
 	}
 
 	function humanPlay() {
 		if (!playableSelection || game.phase !== 'playing') return
+		const rank = selectedCards[0]?.rank
+		const previousCount = game.activeCards.length
+		const reinforcesRank = Boolean(rank && game.activeRank === rank)
+		const nextCount = previousCount + selectedCards.length
 		animateTableUpdate(() => {
 			setGame((current) => playCards(current, 'human', selectedCards))
 			if (onboardingMode === 'guided') {
@@ -439,10 +629,19 @@ export function GameTable() {
 			}
 			setSelected([])
 		})
+		if (rank && reinforcesRank) announceFeedback(levelUpCue('human', rank, previousCount, nextCount), 2200)
 	}
 
 	function humanDraw() {
 		if (game.turn !== 'human' || game.humanHasDrawn || !game.activeRank) return
+		startDrawAnimation('human', Math.min(game.activeCards.length, game.drawPile.length + game.recycle.length))
+		announceFeedback({
+			side: 'human',
+			tone: 'warning',
+			label: 'ZERO-TRUST DRAW',
+			title: `DRAWING ${game.activeCards.length}.`,
+			detail: 'YOU CAN STILL PLAY A RESCUE SET—or WAIT.',
+		}, 1650)
 		animateTableUpdate(() => {
 			setGame((current) => {
 				const result = drawCards(current, 'human')
@@ -471,6 +670,16 @@ export function GameTable() {
 			else if (coachStage === 3) humanDecline()
 			return
 		}
+		if (game.activeRank && !game.humanHasDrawn && !game.forcedContinuation) {
+			startDrawAnimation('human', Math.min(game.activeCards.length, game.drawPile.length + game.recycle.length))
+			announceFeedback({
+				side: 'human',
+				tone: 'warning',
+				label: 'PASS + DRAW',
+				title: `I’LL BE BACK.`,
+				detail: `DRAWING ${game.activeCards.length}, THEN PASSING TO THE MACHINE.`,
+			}, 1650)
+		}
 		animateTableUpdate(() => {
 			setGame((current) => {
 				let next = current
@@ -488,6 +697,7 @@ export function GameTable() {
 	}
 
 	function beginGuidedGame() {
+		cancelComputerSequence()
 		animateTableUpdate(() => {
 			setSelected([])
 			setCoachStage(0)
@@ -677,6 +887,32 @@ export function GameTable() {
 
 			<div className="game-grid">
 				<div className="game-board">
+					<div className="game-event-layer" aria-live="assertive" aria-atomic="true">
+						{feedback && (
+							<div key={feedback.id} className={`table-feedback side-${feedback.side} tone-${feedback.tone}`} role="status">
+								<small>{feedback.label}</small>
+								<strong>{feedback.title}</strong>
+								<span>{feedback.detail}</span>
+							</div>
+						)}
+					</div>
+					{drawAnimation && (
+						<div key={drawAnimation.id} className={`draw-flight to-${drawAnimation.player}`} aria-hidden="true">
+							{Array.from({ length: Math.min(drawAnimation.count, 4) }, (_, index) => (
+								<div
+									key={index}
+									className="draw-flight-card"
+									style={{
+										'--flight-delay': `${index * 85}ms`,
+										'--flight-offset': `${index * 12}px`,
+										'--flight-rotation': `${-8 + index * 4}deg`,
+										'--human-flight-rotation': `${-6 + index * 3}deg`,
+									} as CSSProperties}
+								><span>IBB</span></div>
+							))}
+							<b>{drawAnimation.count} CARD{drawAnimation.count === 1 ? '' : 'S'}</b>
+						</div>
+					)}
 					<div className="opponent-zone">
 						<div className="zone-label"><span>THE MACHINE</span><b>{game.cpu.length} cards</b></div>
 						<div className="opponent-hand" aria-label={`The Machine has ${game.cpu.length} cards`}>
@@ -685,11 +921,11 @@ export function GameTable() {
 					</div>
 
 					<div className="table-center">
-						<div className="draw-stack">
+						<div className={`draw-stack ${drawAnimation ? 'is-drawing' : ''}`}>
 							<PlayingCardView hidden />
 							<span>{game.drawPile.length} DRAW</span>
 						</div>
-						<div className="active-play">
+						<div className={`active-play ${feedback?.tone === 'impact' ? 'is-impacting' : ''}`}>
 							<div className="challenge-label">
 								<span>ACTIVE CHALLENGE</span>
 								<strong>{game.activeRank ? `${game.activeCards.length} × ${game.activeRank}` : 'OPEN TABLE'}</strong>
