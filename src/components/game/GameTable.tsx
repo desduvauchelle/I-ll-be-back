@@ -602,7 +602,7 @@ export function GameTable() {
 				label: 'LOCAL MEMORY RESTORED',
 				title: `GAME ${String(restoredGame.gameNumber).padStart(2, '0')} RESUMED.`,
 				detail: `YOU ${restoredGame.humanWins} · MACHINE ${restoredGame.cpuWins} · ${restoredGame.turn === 'human' ? 'YOUR MOVE' : 'MACHINE TURN'}`,
-			}, 2200)
+			}, 1600)
 		}
 	}, [])
 
@@ -627,14 +627,14 @@ export function GameTable() {
 
 				if (step.drawCount) {
 					startDrawAnimation('cpu', step.drawCount)
-					announceFeedback(step.cue, 1800)
+					announceFeedback(step.cue, 1300)
 					const commitTimer = window.setTimeout(() => {
 						animateTableUpdate(() => setGame(step.state))
 					}, 320)
 					cpuTimeoutsRef.current.push(commitTimer)
 				} else {
 					animateTableUpdate(() => setGame(step.state))
-					announceFeedback(step.cue, step.cue.tone === 'impact' ? 2100 : 1650)
+					announceFeedback(step.cue, step.cue.tone === 'impact' ? 1350 : 1150)
 				}
 			}, elapsed)
 			cpuTimeoutsRef.current.push(timer)
@@ -680,7 +680,7 @@ export function GameTable() {
 			: [...current, card.id])
 	}
 
-	function announceFeedback(cue: FeedbackCue, duration = 1700) {
+	function announceFeedback(cue: FeedbackCue, duration = 1200) {
 		if (feedbackTimerRef.current) window.clearTimeout(feedbackTimerRef.current)
 		const id = ++eventIdRef.current
 		setFeedback({ ...cue, id })
@@ -744,7 +744,7 @@ export function GameTable() {
 			}
 			setSelected([])
 		})
-		if (rank && reinforcesRank) announceFeedback(levelUpCue('human', rank, previousCount, nextCount), 2200)
+		if (rank && reinforcesRank) announceFeedback(levelUpCue('human', rank, previousCount, nextCount), 1350)
 	}
 
 	function humanDraw() {
@@ -756,7 +756,7 @@ export function GameTable() {
 			label: 'ZERO-TRUST DRAW',
 			title: `DRAWING ${game.activeCards.length}.`,
 			detail: 'NOW PLAY A RESCUE SET—or PASS.',
-		}, 1650)
+		}, 1200)
 		animateTableUpdate(() => {
 			setGame((current) => {
 				const result = drawCards(current, 'human')
@@ -794,7 +794,7 @@ export function GameTable() {
 			label: 'TURN PASSED',
 			title: 'I’LL BE BACK.',
 			detail: 'THE MACHINE HAS THE NEXT MOVE.',
-		}, 1500)
+		}, 1100)
 	}
 
 	function beginGuidedGame() {
@@ -843,7 +843,7 @@ export function GameTable() {
 			label: 'TABLE CONTROL',
 			title: 'SEQUENCE CONTINUES.',
 			detail: 'PLAY A LEGAL RESPONSE TO KEEP THE PRESSURE ON.',
-		}, 1500)
+		}, 1100)
 	}
 
 	function restartForHuman() {
@@ -858,7 +858,7 @@ export function GameTable() {
 			label: 'TABLE CONTROL',
 			title: 'TABLE CLEARED.',
 			detail: 'OPEN THE NEW SEQUENCE WITH ANY MATCHING SET.',
-		}, 1500)
+		}, 1100)
 	}
 
 	function moveHandFocus(nextIndex: number) {
