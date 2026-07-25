@@ -375,7 +375,8 @@ body:has(.play-page) > div > main { min-height: 0; }
 .possible-play-option.is-active:focus { background: white; color: #0a0b0a; box-shadow: 0 0 0 4px #0a0b0a, 0 0 0 7px white, 0 7px 14px rgba(0,0,0,.5); }
 .human-hand { min-height: 145px; position: relative; display: flex; align-items: flex-end; justify-content: center; padding: 12px 70px 0; overflow: visible; }
 .mobile-hand-hint { display: none; }
-.human-hand .playing-card { --card-lift: 0px; --card-spread: 0px; margin-left: -42px; translate: 0 var(--card-lift); transform: translateX(var(--card-spread)); }
+.human-hand .playing-card { --card-lift: 0px; --card-spread: 0px; margin-left: -30px; translate: 0 var(--card-lift); transform: translateX(var(--card-spread)); }
+.human-hand .playing-card.is-rank-grouped { margin-left: -48px; }
 .human-hand .playing-card:first-child { margin-left: 0; }
 .human-hand .playing-card:is(:hover, :focus-visible) { --card-lift: -18px; }
 .human-hand .playing-card.is-option-preview { --card-lift: -20px; box-shadow: 0 0 0 2px #bfc2be, 0 16px 28px rgba(0,0,0,.55), 0 0 22px rgba(255,255,255,.22); }
@@ -571,7 +572,8 @@ kbd { display: inline-grid; place-items: center; min-width: 22px; min-height: 19
   .possible-play-option { min-height: 34px; font-size: 15px; }
   .human-hand { min-width: 0; min-height: 138px; position: relative; justify-content: flex-start; padding: 34px 18px 8px; overflow-x: auto; overflow-y: hidden; overscroll-behavior-inline: contain; scroll-padding-inline: 18px; scroll-snap-type: x proximity; scrollbar-width: thin; touch-action: pan-x; -webkit-overflow-scrolling: touch; }
   .human-hand::after { content: ''; flex: 0 0 18px; height: 1px; }
-  .human-hand .playing-card { flex: 0 0 68px; margin-left: -20px; scroll-snap-align: center; }
+  .human-hand .playing-card { flex: 0 0 68px; margin-left: -14px; scroll-snap-align: center; }
+  .human-hand .playing-card.is-rank-grouped { margin-left: -27px; }
   .human-hand .playing-card:is(:hover, :focus-visible) { --card-lift: -12px; }
   .human-hand .playing-card.is-selected { --card-lift: -18px; }
   .human-hand .playing-card:is(:hover, :focus-visible, .is-selected, .is-option-preview) ~ .playing-card { --card-spread: 18px; }
@@ -616,7 +618,8 @@ kbd { display: inline-grid; place-items: center; min-width: 22px; min-height: 19
   .opponent-hand .playing-card { margin-left: -39px; }
   .human-hand { padding-inline: 14px; scroll-padding-inline: 14px; }
   .human-hand::after { flex-basis: 14px; }
-  .human-hand .playing-card { flex-basis: 64px; margin-left: -18px; }
+  .human-hand .playing-card { flex-basis: 64px; margin-left: -12px; }
+  .human-hand .playing-card.is-rank-grouped { margin-left: -25px; }
   .human-hand .playing-card:is(:hover, :focus-visible, .is-selected, .is-option-preview) ~ .playing-card { --card-spread: 14px; }
   .mobile-hand-hint { left: 14px; }
   .hand-command-actions { grid-template-columns: 1fr; }

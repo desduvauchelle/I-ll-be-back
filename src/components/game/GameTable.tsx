@@ -506,6 +506,7 @@ function PlayingCardView({
 	card,
 	selected = false,
 	previewed = false,
+	groupedWithPrevious = false,
 	coached = false,
 	dimmed = false,
 	hidden = false,
@@ -517,6 +518,7 @@ function PlayingCardView({
 	card?: PlayingCard
 	selected?: boolean
 	previewed?: boolean
+	groupedWithPrevious?: boolean
 	coached?: boolean
 	dimmed?: boolean
 	hidden?: boolean
@@ -545,7 +547,7 @@ function PlayingCardView({
 		<button
 			ref={buttonRef}
 			type="button"
-			className={`playing-card ${selected ? 'is-selected' : ''} ${previewed ? 'is-option-preview' : ''} ${coached ? 'is-coached' : ''} ${dimmed ? 'is-dimmed' : ''}`}
+			className={`playing-card ${groupedWithPrevious ? 'is-rank-grouped' : ''} ${selected ? 'is-selected' : ''} ${previewed ? 'is-option-preview' : ''} ${coached ? 'is-coached' : ''} ${dimmed ? 'is-dimmed' : ''}`}
 			style={transitionStyle}
 			onClick={onClick}
 			onFocus={onFocus}
@@ -1221,6 +1223,7 @@ export function GameTable() {
 									onFocus={() => { setFocusedCardIndex(index); zoneIndexRef.current.cards = index }}
 									selected={selected.includes(card.id)}
 									previewed={previewedCardIds.has(card.id)}
+									groupedWithPrevious={index > 0 && game.human[index - 1]?.rank === card.rank}
 									coached={onboardingMode === 'guided' && coachedCardIds.has(card.id) && game.turn === 'human'}
 									dimmed={onboardingMode === 'guided' && game.turn === 'human' && !coachedCardIds.has(card.id)}
 									onClick={() => toggleCard(card)}
