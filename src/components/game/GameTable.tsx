@@ -90,6 +90,7 @@ interface SuggestedPlay {
 	id: string
 	label: string
 	cards: PlayingCard[]
+	breaksGroupSize: number | null
 }
 
 type NavigationZone = 'actions' | 'combos' | 'cards'
@@ -112,6 +113,13 @@ function countName(count: number): string {
 	return `${count}-CARD LEVEL`
 }
 
+function compactGroupName(count: number): string {
+	if (count === 2) return 'PAIR'
+	if (count === 3) return 'TRIPLE'
+	if (count === 4) return 'QUAD'
+	return `${count}-SET`
+}
+
 function suggestedPlaysFor(hand: PlayingCard[], activeRank: Rank | null, activeCount: number): SuggestedPlay[] {
 	const activeValue = activeRank ? rankValue(activeRank) : -1
 	const plays: SuggestedPlay[] = []
@@ -121,11 +129,21 @@ function suggestedPlaysFor(hand: PlayingCard[], activeRank: Rank | null, activeC
 		if (!activeRank || rank === activeRank) {
 			for (let count = 1; count <= matching.length; count += 1) {
 				const cards = matching.slice(0, count)
-				plays.push({ id: `${rank}-${count}`, label: count === 1 ? rank : `${count} × ${rank}`, cards })
+				plays.push({
+					id: `${rank}-${count}`,
+					label: count === 1 ? rank : `${count} × ${rank}`,
+					cards,
+					breaksGroupSize: count < matching.length && matching.length > 1 ? matching.length : null,
+				})
 			}
 		} else if (rankValue(rank) > activeValue && matching.length >= activeCount) {
 			const cards = matching.slice(0, activeCount)
-			plays.push({ id: `${rank}-${activeCount}`, label: activeCount === 1 ? rank : `${activeCount} × ${rank}`, cards })
+			plays.push({
+				id: `${rank}-${activeCount}`,
+				label: activeCount === 1 ? rank : `${activeCount} × ${rank}`,
+				cards,
+				breaksGroupSize: activeCount < matching.length ? matching.length : null,
+			})
 		}
 	}
 
@@ -1222,7 +1240,8 @@ export function GameTable() {
 							<div className="possible-play-options">
 								{game.phase === 'playing' && game.turn === 'human' && onboardingMode !== 'guided' && suggestedPlays.map((play) => {
 									const active = selected.length === play.cards.length && play.cards.every((card) => selected.includes(card.id))
-									return <button key={play.id} type="button" data-play-id={play.id} className={`possible-play-option ${active ? 'is-active' : ''}`} aria-label={`${play.label} possible play. Activate to play immediately${active ? ', cards selected' : ''}`} aria-pressed={active} onFocus={() => setPreviewedPlayId(play.id)} onBlur={() => setPreviewedPlayId(null)} onMouseEnter={() => setPreviewedPlayId(play.id)} onMouseLeave={(event) => { if (document.activeElement !== event.currentTarget) setPreviewedPlayId(null) }} onClick={() => commitHumanPlay(play.cards)}><em aria-hidden="true">▶</em><span>[</span><b>{play.label}</b><span>]</span></button>
+									const breakWarning = play.breaksGroupSize ? `BREAKS ${compactGroupName(play.breaksGroupSize)}` : null
+									return <button key={play.id} type="button" data-play-id={play.id} className={`possible-play-option ${breakWarning ? 'breaks-group' : ''} ${active ? 'is-active' : ''}`} aria-label={`${play.label} possible play. Activate to play immediately${breakWarning ? `. Warning: ${breakWarning.toLowerCase()}.` : ''}${active ? ' Cards selected.' : ''}`} aria-pressed={active} onFocus={() => setPreviewedPlayId(play.id)} onBlur={() => setPreviewedPlayId(null)} onMouseEnter={() => setPreviewedPlayId(play.id)} onMouseLeave={(event) => { if (document.activeElement !== event.currentTarget) setPreviewedPlayId(null) }} onClick={() => commitHumanPlay(play.cards)}><em aria-hidden="true">▶</em><span>[</span><b>{play.label}</b><span>]</span>{breakWarning && <small className="play-break-warning"><i aria-hidden="true">!</i>{breakWarning}</small>}</button>
 								})}
 								{canDrawNow && <button type="button" data-quick-action="draw" className="possible-play-option quick-action-option" aria-label={`Draw ${game.activeCards.length} card${game.activeCards.length === 1 ? '' : 's'}`} onClick={() => runQuickAction('draw')}><em aria-hidden="true">↓</em><b>DRAW {game.activeCards.length}</b></button>}
 								{canRestartNow && <button type="button" data-quick-action="reset" className="possible-play-option quick-action-option" aria-label="Reset the table" onClick={() => runQuickAction('reset')}><em aria-hidden="true">↻</em><b>RESET TABLE</b></button>}
