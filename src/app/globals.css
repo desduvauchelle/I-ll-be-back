@@ -329,6 +329,7 @@ body:has(.play-page) > div > main { min-height: 0; }
 .opponent-hand { height: 112px; display: flex; justify-content: center; align-items: center; padding-top: 8px; }
 .opponent-hand .playing-card { margin-left: -45px; transform: scale(.72); }
 .opponent-hand .playing-card:first-child { margin-left: 0; }
+.opponent-hand-overflow { z-index: 2; flex: 0 0 auto; display: grid; place-items: center; min-width: 34px; height: 34px; margin-left: -15px; border: 1px solid #c8cbc7; border-radius: 50%; background: #111311; color: white; box-shadow: 0 5px 14px rgba(0,0,0,.55); font-family: var(--display); font-size: 14px; letter-spacing: .03em; }
 .table-center { display: grid; grid-template-columns: 130px 1fr; align-items: center; padding: 10px 50px; }
 .draw-stack { display: grid; justify-items: center; gap: 9px; }
 .draw-stack .playing-card { transform: scale(.78) rotate(-3deg); box-shadow: 4px 4px 0 #555, 8px 8px 0 #222; }
@@ -487,6 +488,31 @@ kbd { display: inline-grid; place-items: center; min-width: 22px; min-height: 19
   .control-panel > .control-head { grid-column: auto; }
   .keyboard-panel { border-right: 0; }
   .table-feedback.side-cpu, .table-feedback.side-human, .table-feedback.side-center { top: 18px; right: 16px; bottom: auto; left: auto; translate: 0; }
+
+  /* iPad landscape still has a desktop-like width, but much less vertical room. */
+  .game-board { grid-template-rows: 86px minmax(140px, 1fr) minmax(268px, 47%); }
+  .game-board::before { inset: 14px; }
+  .playing-card { flex-basis: 78px; width: 78px; height: 116px; }
+  .card-suit { font-size: 32px; }
+  .card-corner { font-size: 17px; }
+  .opponent-zone { padding: 12px 24px 0; overflow: hidden; }
+  .opponent-hand { height: 78px; padding-top: 0; overflow: hidden; }
+  .opponent-hand .playing-card { margin-left: -41px; transform: scale(.62); }
+  .opponent-hand-overflow { min-width: 30px; height: 30px; margin-left: -10px; font-size: 12px; }
+  .table-center { grid-template-columns: 88px minmax(0, 1fr); padding: 4px 28px; }
+  .draw-stack { gap: 3px; }
+  .draw-stack .playing-card { transform: scale(.66) rotate(-3deg); }
+  .challenge-label { gap: 2px; margin-bottom: 4px; }
+  .challenge-label strong { font-size: 24px; }
+  .active-cards { min-height: 122px; }
+  .human-zone { padding: 0 20px 7px; }
+  .hand-command-bar { min-height: 62px; margin-top: 4px; }
+  .possible-plays { min-height: 38px; margin-top: 4px; }
+  .human-hand { min-width: 0; min-height: 132px; justify-content: flex-start; padding: 24px 36px 0; overflow-x: auto; overflow-y: hidden; overscroll-behavior-inline: contain; scroll-padding-inline: 36px; touch-action: pan-x; -webkit-overflow-scrolling: touch; }
+  .human-hand::after { content: ''; flex: 0 0 36px; height: 1px; }
+  .human-hand .playing-card { flex: 0 0 78px; margin-left: var(--mobile-hand-margin, -14px); }
+  .human-hand .playing-card.is-rank-grouped { margin-left: calc(var(--mobile-hand-margin, -14px) - 13px); }
+  .human-hand .playing-card:is(:hover, :focus-visible, .is-selected, .is-option-preview) ~ .playing-card { --card-spread: var(--mobile-card-spread, 18px); }
 }
 
 @media (max-width: 760px) {

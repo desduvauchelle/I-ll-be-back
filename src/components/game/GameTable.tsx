@@ -1098,6 +1098,8 @@ export function GameTable() {
 	const extraHandCards = Math.max(0, game.human.length - 8)
 	const mobileHandMargin = -Math.min(46, 14 + extraHandCards * 3)
 	const mobileCardSpread = Math.max(8, 18 - extraHandCards * 1.25)
+	const visibleCpuCards = game.cpu.slice(0, 16)
+	const hiddenCpuCardCount = game.cpu.length - visibleCpuCards.length
 	const coachCopy = coachStage === 0
 		? { label: 'GUIDED MOVE 1 / 4', title: 'OPEN WITH THE PAIR OF 3s.', body: 'The glowing cards are your training move. Select both 3s, then play them to establish a pair.' }
 		: coachStage === 1
@@ -1227,7 +1229,8 @@ export function GameTable() {
 					<div className="opponent-zone">
 						<div className="zone-label"><span>THE MACHINE</span><b>{game.cpu.length} cards</b></div>
 						<div className="opponent-hand" aria-label={`The Machine has ${game.cpu.length} cards`}>
-							{game.cpu.map((card, index) => <PlayingCardView key={card.id} card={card} hidden />)}
+							{visibleCpuCards.map((card) => <PlayingCardView key={card.id} card={card} hidden />)}
+							{hiddenCpuCardCount > 0 && <span className="opponent-hand-overflow" aria-hidden="true">+{hiddenCpuCardCount}</span>}
 						</div>
 					</div>
 
