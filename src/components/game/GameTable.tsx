@@ -604,6 +604,8 @@ export function GameTable() {
 	const eventIdRef = useRef(0)
 	const cpuSequenceIdRef = useRef(0)
 	const cpuTimeoutsRef = useRef<number[]>([])
+	const wasHumanTurnRef = useRef(false)
+	const previousComboSignatureRef = useRef('')
 
 	const selectedCards = useMemo(
 		() => game.human.filter((card) => selected.includes(card.id)),
@@ -1010,6 +1012,34 @@ export function GameTable() {
 		setFocusedCardIndex(normalizedIndex)
 		window.requestAnimationFrame(() => handCardRefs.current[normalizedIndex]?.focus())
 	}
+
+	useEffect(() => {
+		const isHumanTurn = game.turn === 'human'
+			&& (game.phase === 'playing' || game.phase === 'exchange' || game.phase === 'game-over')
+			&& !['checking', 'prompt', 'briefing'].includes(onboardingMode)
+		const comboSignature = [
+			...suggestedPlays.map((play) => play.id),
+			canDrawNow ? 'draw' : '',
+			canRestartNow ? 'reset' : '',
+			canPassNow ? 'pass' : '',
+			game.phase === 'exchange' ? 'return' : '',
+			game.phase === 'game-over' ? 'next-game' : '',
+		].join('|')
+		const turnReturned = isHumanTurn && !wasHumanTurnRef.current
+		const optionsChanged = isHumanTurn && comboSignature !== previousComboSignatureRef.current
+
+		wasHumanTurnRef.current = isHumanTurn
+		previousComboSignatureRef.current = comboSignature
+		if (!isHumanTurn || (!turnReturned && !optionsChanged)) return
+
+		const focusedZone = navigationZoneFor(document.activeElement as HTMLElement | null)
+		if (!turnReturned && focusedZone && focusedZone !== 'combos') return
+
+		zoneIndexRef.current.combos = 0
+		window.requestAnimationFrame(() => {
+			if (!focusZoneItem('combos', 0) && game.phase === 'exchange') focusZoneItem('cards', 0)
+		})
+	}, [canDrawNow, canPassNow, canRestartNow, game.phase, game.turn, onboardingMode, suggestedPlays])
 
 	useEffect(() => {
 		function handleTableKeyDown(event: KeyboardEvent) {
