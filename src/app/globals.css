@@ -384,8 +384,8 @@ body:has(.play-page) > div > main { min-height: 0; }
 .possible-play-option em { display: inline-grid; place-items: center; min-width: 14px; color: #f2f3f1; font-family: Arial, sans-serif; font-size: 9px; font-style: normal; }
 .possible-play-option b { font-weight: 400; }
 .possible-play-option.breaks-group { border-style: dashed; }
-.play-break-warning { display: inline-flex; align-items: center; gap: 3px; margin-left: 3px; padding-left: 6px; border-left: 1px solid #686c68; color: #aeb1ad; font-family: var(--sans); font-size: 5px; font-weight: 900; line-height: 1; letter-spacing: .1em; white-space: nowrap; }
-.play-break-warning i { display: inline-grid; place-items: center; width: 11px; height: 11px; border: 1px solid currentColor; border-radius: 50%; font-size: 7px; font-style: normal; }
+.play-break-warning { display: inline-flex; align-items: center; margin-left: 1px; padding-left: 4px; border-left: 1px solid #686c68; color: #aeb1ad; line-height: 1; }
+.play-break-warning i { display: inline-grid; place-items: center; width: 13px; height: 13px; border: 1px solid currentColor; border-radius: 50%; font-size: 8px; font-style: normal; }
 .possible-play-option.quick-action-option { gap: 7px; border-style: dashed; font-family: var(--sans); font-size: 8px; font-weight: 900; letter-spacing: .11em; }
 .possible-play-option.quick-action-option b { font-weight: 900; }
 .possible-play-option:disabled { cursor: not-allowed; opacity: .3; }
@@ -513,8 +513,6 @@ kbd { display: inline-grid; place-items: center; min-width: 22px; min-height: 19
   .possible-plays-label small::after { content: 'SWIPE OR \2190  \2192'; font-size: 6px; }
   .possible-play-options { gap: 6px; padding-inline: 6px 18px; scroll-snap-type: x proximity; overscroll-behavior-inline: contain; touch-action: pan-x; -webkit-overflow-scrolling: touch; }
   .possible-play-option { scroll-snap-align: start; padding-inline: 7px; }
-  .play-break-warning { gap: 0; margin-left: 1px; padding-left: 4px; font-size: 0; }
-  .play-break-warning i { width: 13px; height: 13px; font-size: 8px; }
   .human-hand { min-width: 0; min-height: 132px; justify-content: flex-start; padding: 24px 36px 0; overflow-x: auto; overflow-y: hidden; overscroll-behavior-inline: contain; scroll-padding-inline: 36px; touch-action: pan-x; -webkit-overflow-scrolling: touch; }
   .human-hand::after { content: ''; flex: 0 0 36px; height: 1px; }
   .human-hand .playing-card { flex: 0 0 78px; margin-left: var(--mobile-hand-margin, -14px); }
