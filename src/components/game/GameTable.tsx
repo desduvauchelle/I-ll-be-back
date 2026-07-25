@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type Ref } from 'react'
+import { flushSync } from 'react-dom'
 import {
 	RANKS,
 	SUIT_SYMBOLS,
@@ -19,6 +20,19 @@ type Phase = 'playing' | 'exchange' | 'game-over'
 type OnboardingMode = 'checking' | 'prompt' | 'briefing' | 'guided' | 'complete' | 'off'
 
 const ONBOARDING_STORAGE_KEY = 'ill-be-back:onboarding:v1'
+
+interface ViewTransitionDocument {
+	startViewTransition?: (update: () => void) => unknown
+}
+
+function animateTableUpdate(update: () => void) {
+	const transitionDocument = document as unknown as ViewTransitionDocument
+	if (!transitionDocument.startViewTransition || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+		update()
+		return
+	}
+	transitionDocument.startViewTransition(() => flushSync(update))
+}
 
 interface GameState {
 	human: PlayingCard[]
@@ -277,6 +291,9 @@ function PlayingCardView({
 	dimmed = false,
 	hidden = false,
 	onClick,
+	buttonRef,
+	tabIndex,
+	onFocus,
 }: {
 	card?: PlayingCard
 	selected?: boolean
@@ -284,9 +301,16 @@ function PlayingCardView({
 	dimmed?: boolean
 	hidden?: boolean
 	onClick?: () => void
+	buttonRef?: Ref<HTMLButtonElement>
+	tabIndex?: number
+	onFocus?: () => void
 }) {
+	const transitionStyle = card
+		? ({ viewTransitionName: `card-${card.id}` } as CSSProperties)
+		: undefined
+
 	if (hidden || !card) {
-		return <div className="playing-card card-back" aria-hidden="true"><span>IBB</span></div>
+		return <div className="playing-card card-back" style={transitionStyle} aria-hidden="true"><span>IBB</span></div>
 	}
 
 	const content = (
@@ -299,15 +323,20 @@ function PlayingCardView({
 
 	return onClick ? (
 		<button
+			ref={buttonRef}
 			type="button"
 			className={`playing-card ${selected ? 'is-selected' : ''} ${coached ? 'is-coached' : ''} ${dimmed ? 'is-dimmed' : ''}`}
+			style={transitionStyle}
 			onClick={onClick}
+			onFocus={onFocus}
+			tabIndex={tabIndex}
 			aria-pressed={selected}
+			aria-keyshortcuts="Space"
 			aria-label={`${card.rank} of ${card.suit}${selected ? ', selected' : ''}`}
 		>
 			{content}
 		</button>
-	) : <div className="playing-card">{content}</div>
+	) : <div className="playing-card" style={transitionStyle}>{content}</div>
 }
 
 export function GameTable() {
@@ -318,6 +347,8 @@ export function GameTable() {
 	const [onboardingMode, setOnboardingMode] = useState<OnboardingMode>('checking')
 	const [briefingStep, setBriefingStep] = useState(0)
 	const [coachStage, setCoachStage] = useState(0)
+	const [focusedCardIndex, setFocusedCardIndex] = useState(0)
+	const handCardRefs = useRef<Array<HTMLButtonElement | null>>([])
 
 	const selectedCards = useMemo(
 		() => game.human.filter((card) => selected.includes(card.id)),
@@ -352,13 +383,18 @@ export function GameTable() {
 	useEffect(() => {
 		if (game.phase !== 'playing' || game.turn !== 'cpu') return
 		if (onboardingMode === 'checking' || onboardingMode === 'prompt' || onboardingMode === 'briefing') return
-		const timer = window.setTimeout(() => setGame((current) => runComputerTurn(current)), 720)
+		const timer = window.setTimeout(() => animateTableUpdate(() => setGame((current) => runComputerTurn(current))), 640)
 		return () => window.clearTimeout(timer)
 	}, [game.phase, game.turn, game.awaitingDecision, game.activeCards.length, game.cpu.length, onboardingMode])
 
 	useEffect(() => {
 		if (game.turn !== 'human') setSelected([])
 	}, [game.turn])
+
+	useEffect(() => {
+		setFocusedCardIndex((current) => Math.min(current, Math.max(0, game.human.length - 1)))
+		handCardRefs.current = handCardRefs.current.slice(0, game.human.length)
+	}, [game.human.length])
 
 	function toggleCard(card: PlayingCard) {
 		if (game.phase === 'playing' && (game.turn !== 'human' || game.awaitingDecision)) return
@@ -394,50 +430,148 @@ export function GameTable() {
 
 	function humanPlay() {
 		if (!playableSelection || game.phase !== 'playing') return
-		setGame((current) => playCards(current, 'human', selectedCards))
-		if (onboardingMode === 'guided') {
-			if (coachStage === 0) setCoachStage(1)
-			else if (coachStage === 1) setCoachStage(2)
-			else if (coachStage === 3) finishOnboarding()
-		}
-		setSelected([])
+		animateTableUpdate(() => {
+			setGame((current) => playCards(current, 'human', selectedCards))
+			if (onboardingMode === 'guided') {
+				if (coachStage === 0) setCoachStage(1)
+				else if (coachStage === 1) setCoachStage(2)
+				else if (coachStage === 3) finishOnboarding()
+			}
+			setSelected([])
+		})
 	}
 
 	function humanDraw() {
 		if (game.turn !== 'human' || game.humanHasDrawn || !game.activeRank) return
-		setGame((current) => {
-			const result = drawCards(current, 'human')
-			return addLog(
-				{ ...result.state, humanHasDrawn: true },
-				`You claim you cannot play and draw ${result.drawn.length}.`,
-			)
+		animateTableUpdate(() => {
+			setGame((current) => {
+				const result = drawCards(current, 'human')
+				return addLog(
+					{ ...result.state, humanHasDrawn: true },
+					`You claim you cannot play and draw ${result.drawn.length}.`,
+				)
+			})
+			if (onboardingMode === 'guided' && coachStage === 2) setCoachStage(3)
 		})
-		if (onboardingMode === 'guided' && coachStage === 2) setCoachStage(3)
 	}
 
 	function humanDecline() {
-		setGame((current) => declineTurn(current, 'human'))
-		if (onboardingMode === 'guided' && coachStage === 3) finishOnboarding()
+		if (game.phase !== 'playing' || game.turn !== 'human' || game.awaitingDecision) return
+		animateTableUpdate(() => {
+			setGame((current) => declineTurn(current, 'human'))
+			setSelected([])
+			if (onboardingMode === 'guided' && coachStage === 3) finishOnboarding()
+		})
+	}
+
+	function humanPass() {
+		if (game.phase !== 'playing' || game.turn !== 'human' || game.awaitingDecision) return
+		if (onboardingMode === 'guided') {
+			if (coachStage === 2) humanDraw()
+			else if (coachStage === 3) humanDecline()
+			return
+		}
+		animateTableUpdate(() => {
+			setGame((current) => {
+				let next = current
+				if (current.activeRank && !current.humanHasDrawn && !current.forcedContinuation) {
+					const result = drawCards(current, 'human')
+					next = addLog(
+						{ ...result.state, humanHasDrawn: true },
+						`You pass and draw ${result.drawn.length}.`,
+					)
+				}
+				return declineTurn(next, 'human')
+			})
+			setSelected([])
+		})
 	}
 
 	function beginGuidedGame() {
-		setSelected([])
-		setCoachStage(0)
-		setGame(freshGame(undefined, true))
-		setOnboardingMode('guided')
+		animateTableUpdate(() => {
+			setSelected([])
+			setCoachStage(0)
+			setGame(freshGame(undefined, true))
+			setOnboardingMode('guided')
+		})
 	}
 
 	function returnExchangeCard() {
 		if (game.phase !== 'exchange' || selectedCards.length !== 1) return
 		const returned = selectedCards[0]!
-		setGame((current) => addLog({
-			...current,
-			human: sortHand(current.human.filter((card) => card.id !== returned.id)),
-			cpu: sortHand([...current.cpu, returned]),
-			phase: 'playing',
-		}, `You return ${returned.rank}. The Machine, last game's loser, starts.`))
-		setSelected([])
+		animateTableUpdate(() => {
+			setGame((current) => addLog({
+				...current,
+				human: sortHand(current.human.filter((card) => card.id !== returned.id)),
+				cpu: sortHand([...current.cpu, returned]),
+				phase: 'playing',
+			}, `You return ${returned.rank}. The Machine, last game's loser, starts.`))
+			setSelected([])
+		})
 	}
+
+	function startNextGame() {
+		animateTableUpdate(() => {
+			setGame((current) => freshGame(current))
+			setSelected([])
+		})
+	}
+
+	function restartForHuman() {
+		animateTableUpdate(() => {
+			setGame((current) => restartSequence(current, 'human'))
+			setSelected([])
+		})
+	}
+
+	function moveHandFocus(nextIndex: number) {
+		if (game.human.length === 0) return
+		const normalizedIndex = (nextIndex + game.human.length) % game.human.length
+		setFocusedCardIndex(normalizedIndex)
+		window.requestAnimationFrame(() => handCardRefs.current[normalizedIndex]?.focus())
+	}
+
+	useEffect(() => {
+		function handleTableKeyDown(event: KeyboardEvent) {
+			if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return
+			if (onboardingMode === 'checking' || onboardingMode === 'prompt' || onboardingMode === 'briefing') return
+
+			const target = event.target as HTMLElement | null
+			const focusedCard = target?.closest('.human-hand .playing-card')
+			if (event.key === 'Escape') {
+				event.preventDefault()
+				humanPass()
+				return
+			}
+			if (target?.closest('input, textarea, select, a, button') && !focusedCard) return
+
+			if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+				event.preventDefault()
+				moveHandFocus(focusedCard ? focusedCardIndex + (event.key === 'ArrowRight' ? 1 : -1) : focusedCardIndex)
+				return
+			}
+			if (event.key === 'Home' || event.key === 'End') {
+				event.preventDefault()
+				moveHandFocus(event.key === 'Home' ? 0 : game.human.length - 1)
+				return
+			}
+			if (event.key === ' ') {
+				event.preventDefault()
+				const card = game.human[focusedCardIndex]
+				if (card) toggleCard(card)
+				return
+			}
+			if (event.key === 'Enter') {
+				event.preventDefault()
+				if (game.phase === 'exchange') returnExchangeCard()
+				else humanPlay()
+				return
+			}
+		}
+
+		document.addEventListener('keydown', handleTableKeyDown)
+		return () => document.removeEventListener('keydown', handleTableKeyDown)
+	})
 
 	const status = game.phase === 'game-over'
 		? game.winner === 'human' ? 'MISSION COMPLETE' : 'THE MACHINE WON'
@@ -458,6 +592,42 @@ export function GameTable() {
 					: { label: 'GUIDED MOVE 3 / 4', title: 'BLUFF THE DRAW.', body: `Press “I CAN'T PLAY — DRAW ${game.activeCards.length}.” You are allowed to do this even if a legal play is already in your hand.` }
 				: { label: 'GUIDED MOVE 4 / 4', title: 'COME BACK NOW—or LATER.', body: 'The draw completed a legal response. Play the glowing set immediately, or decline and wait for the sequence to return.' }
 	const briefing = BRIEFING_STEPS[briefingStep]!
+	const selectionMessage = selectedCards.length === 0
+		? game.activeRank ? `Beat ${game.activeRank} with exactly ${game.activeCards.length}, or add more ${game.activeRank}s.` : 'Open with any same-rank set.'
+		: legalSelection ? 'VALID PLAY' : 'INVALID: MATCH THE RANK OR THE COUNT'
+	const passLabel = game.activeRank && !game.humanHasDrawn && !game.forcedContinuation
+		? `PASS + DRAW ${game.activeCards.length}`
+		: 'PASS TURN'
+	const turnControl = game.phase === 'game-over' ? (
+		<div className="hand-command-bar game-result" aria-label="Game result">
+			<div className="hand-command-copy"><small>FINAL STATUS</small><strong>{game.winner === 'human' ? 'YOU GOT OUT.' : 'YOU WERE LEFT BEHIND.'}</strong><p>{game.winner === 'human' ? 'The Machine surrenders its best card next game.' : 'Your best card belongs to the Machine next game.'}</p></div>
+			<div className="hand-command-actions"><button className="machine-button primary" onClick={startNextGame}>PLAY NEXT GAME</button></div>
+		</div>
+	) : game.phase === 'exchange' ? (
+		<div className="hand-command-bar" aria-label="Card exchange controls">
+			<div className="hand-command-copy"><small>WINNER&apos;S PRIVILEGE</small><strong>RETURN ANY CARD</strong><p>You may return the exact card you received.</p></div>
+			<div className="hand-command-actions"><button className="machine-button primary" disabled={!legalSelection} onClick={returnExchangeCard} aria-keyshortcuts="Enter">CONFIRM RETURN <kbd>ENTER</kbd></button></div>
+		</div>
+	) : game.awaitingDecision && game.turn === 'human' ? (
+		<div className="hand-command-bar" aria-label="Sequence controls">
+			<div className="hand-command-copy"><small>YOU CONTROL THE TABLE</small><strong>CONTINUE OR RESTART?</strong><p>{humanCanContinue ? 'The sequence came back to you.' : 'No legal continuation remains.'}</p></div>
+			<div className="hand-command-actions"><button className="machine-button primary" disabled={!humanCanContinue} onClick={() => setGame((current) => addLog({ ...current, awaitingDecision: false, forcedContinuation: true }, 'You keep the sequence alive.'))}>CONTINUE</button><button className="machine-button" onClick={restartForHuman}>CLEAR + RESTART</button></div>
+		</div>
+	) : (
+		<div className="hand-command-bar" aria-label="Turn controls">
+			<div className="hand-command-copy" aria-live="polite"><small>{game.turn === 'human' ? 'YOUR COMMAND' : 'OPPONENT ACTIVE'}</small><strong>{selectedCards.length > 0 ? `${selectedCards.length} × ${selectedCards[0]?.rank ?? ''}` : game.turn === 'human' ? 'MAKE YOUR MOVE' : 'STAND BY'}</strong><p>{selectionMessage}</p></div>
+			<div className="hand-command-actions">
+				<button className={`machine-button primary ${onboardingMode === 'guided' && [0, 1, 3].includes(coachStage) ? 'coach-target' : ''}`} disabled={game.turn !== 'human' || !playableSelection} onClick={humanPlay} aria-keyshortcuts="Enter">PLAY SELECTED <kbd>ENTER</kbd></button>
+				{game.activeRank && game.turn === 'human' && !game.humanHasDrawn && !game.forcedContinuation && (
+					<button className={`machine-button warning ${onboardingMode === 'guided' && coachStage === 2 ? 'coach-target' : ''}`} onClick={humanDraw}>DRAW {game.activeCards.length}</button>
+				)}
+				{game.turn === 'human' && onboardingMode !== 'guided' && <button className="machine-button" onClick={humanPass} aria-keyshortcuts="Escape">{passLabel} <kbd>ESC</kbd></button>}
+				{game.activeRank && game.turn === 'human' && game.humanHasDrawn && onboardingMode === 'guided' && !game.forcedContinuation && (
+					<button className={coachStage === 3 ? 'machine-button coach-target-secondary' : 'machine-button'} onClick={humanDecline} aria-keyshortcuts="Escape">I&apos;LL BE BACK LATER <kbd>ESC</kbd></button>
+				)}
+			</div>
+		</div>
+	)
 
 	return (
 		<div className="game-console">
@@ -534,11 +704,15 @@ export function GameTable() {
 
 					<div className="human-zone">
 						<div className="zone-label"><span>YOUR HAND</span><b>{game.human.length} cards</b></div>
+						{turnControl}
 						<div className="human-hand">
-							{game.human.map((card) => (
+							{game.human.map((card, index) => (
 								<PlayingCardView
 									key={card.id}
 									card={card}
+									buttonRef={(element) => { handCardRefs.current[index] = element }}
+									tabIndex={index === focusedCardIndex ? 0 : -1}
+									onFocus={() => setFocusedCardIndex(index)}
 									selected={selected.includes(card.id)}
 									coached={onboardingMode === 'guided' && coachedCardIds.has(card.id) && game.turn === 'human'}
 									dimmed={onboardingMode === 'guided' && game.turn === 'human' && !coachedCardIds.has(card.id)}
@@ -554,45 +728,13 @@ export function GameTable() {
 						<span>TURN CONTROL</span>
 						<div className="control-tools"><button type="button" onClick={replayTraining}>REPLAY TRAINING</button><i className={game.turn === 'human' ? 'online' : ''} /></div>
 					</div>
-
-					{game.phase === 'game-over' ? (
-						<div className="decision-card game-result">
-							<small>FINAL STATUS</small>
-							<h2>{game.winner === 'human' ? 'YOU GOT OUT.' : 'YOU WERE LEFT BEHIND.'}</h2>
-							<p>{game.winner === 'human' ? 'The Machine must surrender its best card next game.' : 'Your best card belongs to the Machine next game.'}</p>
-							<button className="machine-button primary" onClick={() => setGame((current) => freshGame(current))}>PLAY NEXT GAME</button>
-						</div>
-					) : game.phase === 'exchange' ? (
-						<div className="decision-card">
-							<small>WINNER'S PRIVILEGE</small>
-							<h2>RETURN ANY CARD</h2>
-							<p>You may even return the exact card you just received.</p>
-							<button className="machine-button primary" disabled={!legalSelection} onClick={returnExchangeCard}>CONFIRM RETURN</button>
-						</div>
-					) : game.awaitingDecision && game.turn === 'human' ? (
-						<div className="decision-card">
-							<small>YOU CONTROL THE TABLE</small>
-							<h2>CONTINUE OR RESTART?</h2>
-							<button className="machine-button primary" disabled={!humanCanContinue} onClick={() => setGame((current) => addLog({ ...current, awaitingDecision: false, forcedContinuation: true }, 'You keep the sequence alive.'))}>CONTINUE</button>
-							<button className="machine-button" onClick={() => setGame((current) => restartSequence(current, 'human'))}>CLEAR + RESTART</button>
-							{!humanCanContinue && <p>You have no legal continuation. Clear the table to restart.</p>}
-						</div>
-					) : (
-						<div className="decision-card">
-							<small>{game.turn === 'human' ? 'SELECT MATCHING CARDS' : 'OPPONENT ACTIVE'}</small>
-							<h2>{selectedCards.length > 0 ? `${selectedCards.length} × ${selectedCards[0]?.rank ?? ''}` : 'MAKE YOUR MOVE'}</h2>
-							<button className={`machine-button primary ${onboardingMode === 'guided' && [0, 1, 3].includes(coachStage) ? 'coach-target' : ''}`} disabled={game.turn !== 'human' || !playableSelection} onClick={humanPlay}>PLAY SELECTED</button>
-							{game.activeRank && game.turn === 'human' && !game.humanHasDrawn && !game.forcedContinuation && (
-								<button className={`machine-button warning ${onboardingMode === 'guided' && coachStage === 2 ? 'coach-target' : ''}`} onClick={humanDraw}>I CAN'T PLAY — DRAW {game.activeCards.length}</button>
-							)}
-							{game.activeRank && game.turn === 'human' && game.humanHasDrawn && !game.forcedContinuation && (
-								<button className={onboardingMode === 'guided' && coachStage === 3 ? 'machine-button coach-target-secondary' : 'machine-button'} onClick={humanDecline}>I'LL BE BACK LATER</button>
-							)}
-							<p className="legality-note">{selectedCards.length === 0
-								? game.activeRank ? `Beat ${game.activeRank} with exactly ${game.activeCards.length}, or add more ${game.activeRank}s.` : 'Open with any same-rank set.'
-								: legalSelection ? 'VALID PLAY' : 'INVALID: MATCH THE RANK OR THE COUNT'}</p>
-						</div>
-					)}
+					<div className="keyboard-panel" aria-label="Keyboard shortcuts">
+						<small>KEYBOARD MODE</small>
+						<div><kbd>←</kbd><kbd>→</kbd><span>MOVE</span></div>
+						<div><kbd>SPACE</kbd><span>SELECT</span></div>
+						<div><kbd>ENTER</kbd><span>PLAY</span></div>
+						<div><kbd>ESC</kbd><span>PASS</span></div>
+					</div>
 
 					<div className="intel-panel">
 						<div className="control-head"><span>ACTION LOG</span></div>
