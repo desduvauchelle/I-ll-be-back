@@ -75,6 +75,7 @@ interface FeedbackCue {
 	label: string
 	title: string
 	detail: string
+	accent?: 'ibb'
 }
 
 interface TableFeedback extends FeedbackCue {
@@ -217,6 +218,7 @@ function levelUpCue(player: Player, rank: Rank, previousCount: number, nextCount
 		label: `COUNT LEVEL ${previousCount} → ${nextCount}`,
 		title: player === 'human' ? 'BAM. I’LL BE BACK.' : 'COUNT LEVEL UP.',
 		detail: `${countName(nextCount)} OF ${rank}s LOCKED. ${playerName(otherPlayer(player)).toUpperCase()} MUST ANSWER WITH ${nextCount}.`,
+		accent: player === 'human' ? 'ibb' : undefined,
 	}
 }
 
@@ -530,6 +532,7 @@ function PlayingCardView({
 	selected = false,
 	previewed = false,
 	groupedWithPrevious = false,
+	levelUpEligible = false,
 	coached = false,
 	dimmed = false,
 	hidden = false,
@@ -542,6 +545,7 @@ function PlayingCardView({
 	selected?: boolean
 	previewed?: boolean
 	groupedWithPrevious?: boolean
+	levelUpEligible?: boolean
 	coached?: boolean
 	dimmed?: boolean
 	hidden?: boolean
@@ -570,16 +574,17 @@ function PlayingCardView({
 		<button
 			ref={buttonRef}
 			type="button"
-			className={`playing-card ${groupedWithPrevious ? 'is-rank-grouped' : ''} ${selected ? 'is-selected' : ''} ${previewed ? 'is-option-preview' : ''} ${coached ? 'is-coached' : ''} ${dimmed ? 'is-dimmed' : ''}`}
+			className={`playing-card ${groupedWithPrevious ? 'is-rank-grouped' : ''} ${levelUpEligible ? 'is-level-up-eligible' : ''} ${selected ? 'is-selected' : ''} ${previewed ? 'is-option-preview' : ''} ${coached ? 'is-coached' : ''} ${dimmed ? 'is-dimmed' : ''}`}
 			style={transitionStyle}
 			onClick={onClick}
 			onFocus={onFocus}
 			tabIndex={tabIndex}
 			aria-pressed={selected}
 			aria-keyshortcuts="Space"
-			aria-label={`${card.rank} of ${card.suit}${selected ? ', selected' : ''}`}
+			aria-label={`${card.rank} of ${card.suit}${levelUpEligible ? ", can increase the count and trigger I'll be back" : ''}${selected ? ', selected' : ''}`}
 		>
 			{content}
+			{levelUpEligible && <span className="card-ibb-mark" aria-hidden="true">IBB</span>}
 		</button>
 	) : <div className="playing-card" style={transitionStyle}>{content}</div>
 }
@@ -1236,7 +1241,7 @@ export function GameTable({ homeHref = '/', rulesHref = '/rules' }: { homeHref?:
 				<div className="game-board">
 					<div className="game-event-layer" aria-live="assertive" aria-atomic="true">
 						{feedback && (
-							<div key={feedback.id} className={`table-feedback side-${feedback.side} tone-${feedback.tone}`} role="status">
+							<div key={feedback.id} className={`table-feedback side-${feedback.side} tone-${feedback.tone} ${feedback.accent === 'ibb' ? 'accent-ibb' : ''}`} role="status">
 								<small>{feedback.label}</small>
 								<strong>{feedback.title}</strong>
 								<span>{feedback.detail}</span>
@@ -1311,7 +1316,8 @@ export function GameTable({ homeHref = '/', rulesHref = '/rules' }: { homeHref?:
 								{game.phase === 'playing' && game.turn === 'human' && onboardingMode !== 'guided' && suggestedPlays.map((play) => {
 									const active = selected.length === play.cards.length && play.cards.every((card) => selected.includes(card.id))
 									const breakWarning = play.breaksGroupSize ? `BREAKS ${compactGroupName(play.breaksGroupSize)}` : null
-									return <button key={play.id} type="button" data-play-id={play.id} className={`possible-play-option ${breakWarning ? 'breaks-group' : ''} ${active ? 'is-active' : ''}`} aria-label={`${play.label} possible play. Activate to play immediately${breakWarning ? `. Warning: ${breakWarning.toLowerCase()}.` : ''}${active ? ' Cards selected.' : ''}`} aria-pressed={active} onFocus={() => setPreviewedPlayId(play.id)} onBlur={() => setPreviewedPlayId(null)} onMouseEnter={() => setPreviewedPlayId(play.id)} onMouseLeave={(event) => { if (document.activeElement !== event.currentTarget) setPreviewedPlayId(null) }} onClick={() => commitHumanPlay(play.cards)}><span>[</span><b>{play.label}</b><span>]</span>{breakWarning && <small className="play-break-warning" title={breakWarning} aria-label={breakWarning}><i aria-hidden="true">!</i></small>}</button>
+									const triggersIbb = Boolean(game.activeRank && play.cards[0]?.rank === game.activeRank)
+									return <button key={play.id} type="button" data-play-id={play.id} className={`possible-play-option ${triggersIbb ? 'is-ibb-trigger' : ''} ${breakWarning ? 'breaks-group' : ''} ${active ? 'is-active' : ''}`} aria-label={`${play.label} possible play. Activate to play immediately${triggersIbb ? `. Triggers I'll be back.` : ''}${breakWarning ? `. Warning: ${breakWarning.toLowerCase()}.` : ''}${active ? ' Cards selected.' : ''}`} aria-pressed={active} onFocus={() => setPreviewedPlayId(play.id)} onBlur={() => setPreviewedPlayId(null)} onMouseEnter={() => setPreviewedPlayId(play.id)} onMouseLeave={(event) => { if (document.activeElement !== event.currentTarget) setPreviewedPlayId(null) }} onClick={() => commitHumanPlay(play.cards)}><span>[</span><b>{play.label}</b><span>]</span>{triggersIbb && <small className="ibb-trigger-mark" aria-hidden="true">BAM</small>}{breakWarning && <small className="play-break-warning" title={breakWarning} aria-label={breakWarning}><i aria-hidden="true">!</i></small>}</button>
 								})}
 								{canDrawNow && <button type="button" data-quick-action="draw" className="possible-play-option quick-action-option" aria-label={`Draw ${game.activeCards.length} card${game.activeCards.length === 1 ? '' : 's'}`} onClick={() => runQuickAction('draw')}><em aria-hidden="true">↓</em><b>DRAW {game.activeCards.length}</b></button>}
 								{canRestartNow && <button type="button" data-quick-action="reset" className="possible-play-option quick-action-option" aria-label="Reset the table" onClick={() => runQuickAction('reset')}><em aria-hidden="true">↻</em><b>RESET TABLE</b></button>}
@@ -1335,6 +1341,7 @@ export function GameTable({ homeHref = '/', rulesHref = '/rules' }: { homeHref?:
 									selected={selected.includes(card.id)}
 									previewed={previewedCardIds.has(card.id)}
 									groupedWithPrevious={index > 0 && game.human[index - 1]?.rank === card.rank}
+									levelUpEligible={game.phase === 'playing' && game.turn === 'human' && Boolean(game.activeRank) && card.rank === game.activeRank}
 									coached={onboardingMode === 'guided' && coachedCardIds.has(card.id) && game.turn === 'human'}
 									dimmed={onboardingMode === 'guided' && game.turn === 'human' && !coachedCardIds.has(card.id)}
 									onClick={() => toggleCard(card)}
