@@ -994,8 +994,12 @@ export function GameTable() {
 			}
 			if (event.key === 'Enter' && focusedCard) {
 				event.preventDefault()
-				const card = game.human[focusedCardIndex]
-				if (card) toggleCard(card)
+				if (game.phase === 'exchange' && selectedCards.length === 1) {
+					returnExchangeCard()
+				} else {
+					const card = game.human[focusedCardIndex]
+					if (card) toggleCard(card)
+				}
 				return
 			}
 			if (event.key === 'Enter' && focusedCombo) {
@@ -1186,7 +1190,7 @@ export function GameTable() {
 						)}
 					<div className="human-hand" role="group" aria-label="Your hand. Swipe or use the arrow keys to move through cards.">
 						<span className="mobile-hand-hint" aria-hidden="true">SWIPE HAND ↔</span>
-						<span className="card-keyboard-helper" aria-hidden="true"><kbd>←</kbd><kbd>→</kbd> MOVE <i /> <kbd>SPACE</kbd> OR <kbd>ENTER</kbd> SELECT <i /> <kbd>↑</kbd> OPTIONS</span>
+						<span className="card-keyboard-helper" aria-hidden="true">{game.phase === 'exchange' ? <><kbd>←</kbd><kbd>→</kbd> MOVE <i /> <kbd>SPACE</kbd> SELECT <i /> <kbd>ENTER</kbd> RETURN CARD</> : <><kbd>←</kbd><kbd>→</kbd> MOVE <i /> <kbd>SPACE</kbd> OR <kbd>ENTER</kbd> SELECT <i /> <kbd>↑</kbd> OPTIONS</>}</span>
 						{game.human.map((card, index) => (
 								<PlayingCardView
 									key={card.id}
