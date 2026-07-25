@@ -633,7 +633,7 @@ export function GameTable() {
 	}
 
 	function humanDraw() {
-		if (game.turn !== 'human' || game.humanHasDrawn || !game.activeRank) return
+		if (game.phase !== 'playing' || game.turn !== 'human' || game.awaitingDecision || game.forcedContinuation || game.humanHasDrawn || !game.activeRank) return
 		startDrawAnimation('human', Math.min(game.activeCards.length, game.drawPile.length + game.recycle.length))
 		announceFeedback({
 			side: 'human',
@@ -753,6 +753,11 @@ export function GameTable() {
 				humanPass()
 				return
 			}
+			if (event.key.toLowerCase() === 'd') {
+				event.preventDefault()
+				humanDraw()
+				return
+			}
 			if (target?.closest('input, textarea, select, a, button') && !focusedCard) return
 
 			if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
@@ -829,7 +834,7 @@ export function GameTable() {
 			<div className="hand-command-actions">
 				<button className={`machine-button primary ${onboardingMode === 'guided' && [0, 1, 3].includes(coachStage) ? 'coach-target' : ''}`} disabled={game.turn !== 'human' || !playableSelection} onClick={humanPlay} aria-keyshortcuts="Enter">PLAY SELECTED <kbd>ENTER</kbd></button>
 				{game.activeRank && game.turn === 'human' && !game.humanHasDrawn && !game.forcedContinuation && (
-					<button className={`machine-button warning ${onboardingMode === 'guided' && coachStage === 2 ? 'coach-target' : ''}`} onClick={humanDraw}>DRAW {game.activeCards.length}</button>
+					<button className={`machine-button warning ${onboardingMode === 'guided' && coachStage === 2 ? 'coach-target' : ''}`} onClick={humanDraw} aria-keyshortcuts="D">DRAW {game.activeCards.length} <kbd>D</kbd></button>
 				)}
 				{game.turn === 'human' && onboardingMode !== 'guided' && <button className="machine-button" onClick={humanPass} aria-keyshortcuts="Escape">{passLabel} <kbd>ESC</kbd></button>}
 				{game.activeRank && game.turn === 'human' && game.humanHasDrawn && onboardingMode === 'guided' && !game.forcedContinuation && (
@@ -969,6 +974,7 @@ export function GameTable() {
 						<div><kbd>←</kbd><kbd>→</kbd><span>MOVE</span></div>
 						<div><kbd>SPACE</kbd><span>SELECT</span></div>
 						<div><kbd>ENTER</kbd><span>PLAY</span></div>
+						<div><kbd>D</kbd><span>DRAW</span></div>
 						<div><kbd>ESC</kbd><span>PASS</span></div>
 					</div>
 
