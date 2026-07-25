@@ -1095,6 +1095,9 @@ export function GameTable() {
 			: game.awaitingDecision && game.turn === 'human'
 				? 'THE SEQUENCE CAME BACK TO YOU'
 				: game.turn === 'human' ? 'YOUR MOVE' : 'MACHINE THINKING'
+	const extraHandCards = Math.max(0, game.human.length - 8)
+	const mobileHandMargin = -Math.min(46, 14 + extraHandCards * 3)
+	const mobileCardSpread = Math.max(8, 18 - extraHandCards * 1.25)
 	const coachCopy = coachStage === 0
 		? { label: 'GUIDED MOVE 1 / 4', title: 'OPEN WITH THE PAIR OF 3s.', body: 'The glowing cards are your training move. Select both 3s, then play them to establish a pair.' }
 		: coachStage === 1
@@ -1281,7 +1284,7 @@ export function GameTable() {
 								{game.phase === 'playing' && game.turn === 'human' && onboardingMode === 'guided' && !canDrawNow && !(canPassNow && coachStage === 3) && <span className="possible-play-status">FOLLOW THE TRAINING MOVE</span>}
 							</div>
 						</div>
-					<div className="human-hand" role="group" aria-label="Your hand. Swipe or use the arrow keys to move through cards.">
+					<div className="human-hand" role="group" aria-label="Your hand. Swipe or use the arrow keys to move through cards." style={{ '--mobile-hand-margin': `${mobileHandMargin}px`, '--mobile-card-spread': `${mobileCardSpread}px` } as CSSProperties}>
 						<span className="mobile-hand-hint" aria-hidden="true">SWIPE HAND ↔</span>
 						{game.human.map((card, index) => (
 								<PlayingCardView
