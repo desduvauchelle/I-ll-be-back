@@ -113,13 +113,12 @@ function countName(count: number): string {
 }
 
 function suggestedPlaysFor(hand: PlayingCard[], activeRank: Rank | null, activeCount: number): SuggestedPlay[] {
-	if (!activeRank || activeCount < 1) return []
-	const activeValue = rankValue(activeRank)
+	const activeValue = activeRank ? rankValue(activeRank) : -1
 	const plays: SuggestedPlay[] = []
 
 	for (const rank of RANKS) {
 		const matching = hand.filter((card) => card.rank === rank)
-		if (rank === activeRank) {
+		if (!activeRank || rank === activeRank) {
 			for (let count = 1; count <= matching.length; count += 1) {
 				const cards = matching.slice(0, count)
 				plays.push({ id: `${rank}-${count}`, label: count === 1 ? rank : `${count} × ${rank}`, cards })
@@ -909,6 +908,15 @@ export function GameTable() {
 		setSelected(alreadySelected ? [] : cardIds)
 	}
 
+	function runQuickAction(action: string) {
+		if (action === 'draw') humanDraw()
+		else if (action === 'reset') restartForHuman()
+		else if (action === 'pass') humanPass()
+		else if (action === 'decline') humanDecline()
+		else if (action === 'return') returnExchangeCard()
+		else if (action === 'next-game') startNextGame()
+	}
+
 	function elementsInZone(zone: NavigationZone): HTMLButtonElement[] {
 		const selector = zone === 'actions'
 			? '.hand-command-actions button:not(:disabled)'
@@ -1011,6 +1019,11 @@ export function GameTable() {
 			}
 			if (event.key === 'Enter' && focusedCombo) {
 				event.preventDefault()
+				const quickAction = focusedCombo.dataset.quickAction
+				if (quickAction) {
+					runQuickAction(quickAction)
+					return
+				}
 				const play = suggestedPlays.find((option) => option.id === focusedCombo.dataset.playId)
 				if (play) commitHumanPlay(play.cards)
 				return
@@ -1041,11 +1054,6 @@ export function GameTable() {
 						: { label: 'GUIDED MOVE 3 / 4', title: 'BLUFF THE DRAW.', body: `Move to “DRAW ${game.activeCards.length}” and press Enter. Once the cards arrive, choose whether to play or pass.` }
 					: { label: 'GUIDED MOVE 4 / 4', title: 'COME BACK NOW—or LATER.', body: 'The draw completed a legal response. Play the glowing set immediately, or decline and wait for the sequence to return.' }
 	const briefing = BRIEFING_STEPS[briefingStep]!
-	const showSuggestedPlays = game.phase === 'playing'
-		&& game.turn === 'human'
-		&& Boolean(game.activeRank)
-		&& onboardingMode !== 'guided'
-		&& suggestedPlays.length > 0
 	const selectionMessage = selectedCards.length === 0
 		? game.awaitingDecision && game.turn === 'human'
 			? 'Select a legal response to continue—or reset the table and open with anything.'
@@ -1199,17 +1207,23 @@ export function GameTable() {
 					<div className="human-zone">
 						<div className="zone-label"><span>YOUR HAND</span><b>{game.human.length} cards</b></div>
 						{turnControl}
-						{showSuggestedPlays && (
-							<div className="possible-plays" aria-label="Possible plays from your hand">
-								<div className="possible-plays-label"><span>POSSIBLE PLAYS</span><small>CHOOSE A COMBINATION</small></div>
-								<div className="possible-play-options">
-									{suggestedPlays.map((play) => {
-										const active = selected.length === play.cards.length && play.cards.every((card) => selected.includes(card.id))
-										return <button key={play.id} type="button" data-play-id={play.id} className={`possible-play-option ${active ? 'is-active' : ''}`} aria-label={`${play.label} possible play. Press Enter to play${active ? ', cards selected' : ''}`} aria-pressed={active} onFocus={() => setPreviewedPlayId(play.id)} onBlur={() => setPreviewedPlayId(null)} onMouseEnter={() => setPreviewedPlayId(play.id)} onMouseLeave={(event) => { if (document.activeElement !== event.currentTarget) setPreviewedPlayId(null) }} onClick={() => selectSuggestedPlay(play)}><span>[</span><b>{play.label}</b><span>]</span></button>
-									})}
-								</div>
+						<div className="possible-plays" aria-label="Possible plays and quick actions">
+							<div className="possible-plays-label"><span>POSSIBLE PLAYS</span><small>ENTER COMMITS</small></div>
+							<div className="possible-play-options">
+								{game.phase === 'playing' && game.turn === 'human' && onboardingMode !== 'guided' && suggestedPlays.map((play) => {
+									const active = selected.length === play.cards.length && play.cards.every((card) => selected.includes(card.id))
+									return <button key={play.id} type="button" data-play-id={play.id} className={`possible-play-option ${active ? 'is-active' : ''}`} aria-label={`${play.label} possible play. Press Enter to play${active ? ', cards selected' : ''}`} aria-pressed={active} onFocus={() => setPreviewedPlayId(play.id)} onBlur={() => setPreviewedPlayId(null)} onMouseEnter={() => setPreviewedPlayId(play.id)} onMouseLeave={(event) => { if (document.activeElement !== event.currentTarget) setPreviewedPlayId(null) }} onClick={() => selectSuggestedPlay(play)}><em aria-hidden="true">▶</em><span>[</span><b>{play.label}</b><span>]</span></button>
+								})}
+								{canDrawNow && <button type="button" data-quick-action="draw" className="possible-play-option quick-action-option" aria-label={`Draw ${game.activeCards.length} card${game.activeCards.length === 1 ? '' : 's'}`} onClick={() => runQuickAction('draw')}><em aria-hidden="true">↓</em><b>DRAW {game.activeCards.length}</b></button>}
+								{canRestartNow && <button type="button" data-quick-action="reset" className="possible-play-option quick-action-option" aria-label="Reset the table" onClick={() => runQuickAction('reset')}><em aria-hidden="true">↻</em><b>RESET TABLE</b></button>}
+								{canPassNow && onboardingMode !== 'guided' && <button type="button" data-quick-action="pass" className="possible-play-option quick-action-option" aria-label="Pass turn" onClick={() => runQuickAction('pass')}><em aria-hidden="true">→</em><b>PASS</b></button>}
+								{canPassNow && onboardingMode === 'guided' && coachStage === 3 && <button type="button" data-quick-action="decline" className="possible-play-option quick-action-option" aria-label="I'll be back later" onClick={() => runQuickAction('decline')}><em aria-hidden="true">→</em><b>I&apos;LL BE BACK</b></button>}
+								{game.phase === 'exchange' && <button type="button" data-quick-action="return" className="possible-play-option quick-action-option" disabled={!legalSelection} aria-label="Return selected card" onClick={() => runQuickAction('return')}><em aria-hidden="true">⇄</em><b>RETURN CARD</b></button>}
+								{game.phase === 'game-over' && <button type="button" data-quick-action="next-game" className="possible-play-option quick-action-option" aria-label="Play next game" onClick={() => runQuickAction('next-game')}><em aria-hidden="true">＋</em><b>NEXT GAME</b></button>}
+								{game.phase === 'playing' && game.turn === 'cpu' && <span className="possible-play-status">THE MACHINE IS MOVING…</span>}
+								{game.phase === 'playing' && game.turn === 'human' && onboardingMode === 'guided' && !canDrawNow && !(canPassNow && coachStage === 3) && <span className="possible-play-status">FOLLOW THE TRAINING MOVE</span>}
 							</div>
-						)}
+						</div>
 					<div className="human-hand" role="group" aria-label="Your hand. Swipe or use the arrow keys to move through cards.">
 						<span className="mobile-hand-hint" aria-hidden="true">SWIPE HAND ↔</span>
 						{game.human.map((card, index) => (

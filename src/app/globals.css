@@ -376,8 +376,13 @@ body:has(.play-page) > div > main { min-height: 0; }
 .possible-play-options { min-width: 0; display: flex; gap: 9px; overflow-x: auto; padding: 10px 5px 7px; scroll-padding-inline: 5px; scrollbar-width: thin; }
 .possible-play-option { flex: 0 0 auto; min-height: 30px; position: relative; display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border: 1px solid #555955; background: transparent; color: #c5c8c4; cursor: pointer; font-family: var(--display); font-size: 16px; letter-spacing: .04em; transition: background .18s, color .18s, border-color .18s, transform .18s, box-shadow .18s; }
 .possible-play-option span { color: #737773; }
+.possible-play-option em { display: inline-grid; place-items: center; min-width: 14px; color: #f2f3f1; font-family: Arial, sans-serif; font-size: 9px; font-style: normal; }
 .possible-play-option b { font-weight: 400; }
-.possible-play-option:hover { border-color: #aaa; transform: translateY(-1px); }
+.possible-play-option.quick-action-option { gap: 7px; border-style: dashed; font-family: var(--sans); font-size: 8px; font-weight: 900; letter-spacing: .11em; }
+.possible-play-option.quick-action-option b { font-weight: 900; }
+.possible-play-option:disabled { cursor: not-allowed; opacity: .3; }
+.possible-play-status { align-self: center; padding: 0 8px; color: #696d69; font-size: 7px; font-weight: 900; letter-spacing: .14em; }
+.possible-play-option:hover:not(:disabled) { border-color: #aaa; transform: translateY(-1px); }
 .possible-play-option.is-active { border-color: white; background: white; color: #0a0b0a; }
 .possible-play-option.is-active span { color: #555; }
 .possible-play-option:focus { z-index: 2; outline: 3px solid white; outline-offset: 3px; background: #292c2a; color: white; box-shadow: 0 0 0 5px #111, 0 0 0 7px white, 0 7px 14px rgba(0,0,0,.5); transform: translateY(-2px); }
