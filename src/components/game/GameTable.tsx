@@ -499,6 +499,7 @@ export function GameTable() {
 	const canDrawNow = game.phase === 'playing' && game.turn === 'human' && !game.awaitingDecision
 		&& !game.forcedContinuation && !game.humanHasDrawn && Boolean(game.activeRank)
 	const canPassNow = game.phase === 'playing' && game.turn === 'human' && !game.awaitingDecision
+		&& !game.forcedContinuation && (!game.activeRank || game.humanHasDrawn)
 	const canContinueNow = game.phase === 'playing' && game.turn === 'human' && game.awaitingDecision && humanCanContinue
 	const canRestartNow = game.phase === 'playing' && game.turn === 'human' && game.awaitingDecision
 	const canConfirmNow = game.phase === 'exchange' ? legalSelection : canPlayNow
@@ -647,7 +648,7 @@ export function GameTable() {
 			tone: 'warning',
 			label: 'ZERO-TRUST DRAW',
 			title: `DRAWING ${game.activeCards.length}.`,
-			detail: 'YOU CAN STILL PLAY A RESCUE SET—or WAIT.',
+			detail: 'NOW PLAY A RESCUE SET—or PASS.',
 		}, 1650)
 		animateTableUpdate(() => {
 			setGame((current) => {
@@ -662,7 +663,7 @@ export function GameTable() {
 	}
 
 	function humanDecline() {
-		if (game.phase !== 'playing' || game.turn !== 'human' || game.awaitingDecision) return
+		if (!canPassNow) return
 		animateTableUpdate(() => {
 			setGame((current) => declineTurn(current, 'human'))
 			setSelected([])
@@ -671,36 +672,22 @@ export function GameTable() {
 	}
 
 	function humanPass() {
-		if (game.phase !== 'playing' || game.turn !== 'human' || game.awaitingDecision) return
+		if (!canPassNow) return
 		if (onboardingMode === 'guided') {
-			if (coachStage === 2) humanDraw()
-			else if (coachStage === 3) humanDecline()
+			if (coachStage === 3) humanDecline()
 			return
 		}
-		if (game.activeRank && !game.humanHasDrawn && !game.forcedContinuation) {
-			startDrawAnimation('human', Math.min(game.activeCards.length, game.drawPile.length + game.recycle.length))
-			announceFeedback({
-				side: 'human',
-				tone: 'warning',
-				label: 'PASS + DRAW',
-				title: `I’LL BE BACK.`,
-				detail: `DRAWING ${game.activeCards.length}, THEN PASSING TO THE MACHINE.`,
-			}, 1650)
-		}
 		animateTableUpdate(() => {
-			setGame((current) => {
-				let next = current
-				if (current.activeRank && !current.humanHasDrawn && !current.forcedContinuation) {
-					const result = drawCards(current, 'human')
-					next = addLog(
-						{ ...result.state, humanHasDrawn: true },
-						`You pass and draw ${result.drawn.length}.`,
-					)
-				}
-				return declineTurn(next, 'human')
-			})
+			setGame((current) => declineTurn(current, 'human'))
 			setSelected([])
 		})
+		announceFeedback({
+			side: 'human',
+			tone: 'warning',
+			label: 'TURN PASSED',
+			title: 'I’LL BE BACK.',
+			detail: 'THE MACHINE HAS THE NEXT MOVE.',
+		}, 1500)
 	}
 
 	function beginGuidedGame() {
@@ -853,18 +840,19 @@ export function GameTable() {
 			? game.turn === 'cpu'
 				? { label: 'GUIDED MOVE 2 / 4', title: 'WATCH THE COUNT.', body: 'The Machine is answering your pair. Notice what happens when it adds the same active rank.' }
 				: { label: 'GUIDED MOVE 2 / 4', title: `ANSWER ${game.activeCards.length} × ${game.activeRank}.`, body: 'A higher rank needs exactly the current count. The glowing cards form your legal response.' }
-			: coachStage === 2
-				? game.turn === 'cpu'
-					? { label: 'GUIDED MOVE 3 / 4', title: 'EXPECT A COUNTERPLAY.', body: 'The Machine is raising the rank. Your next lesson is the move that gives the game its name.' }
-					: { label: 'GUIDED MOVE 3 / 4', title: 'BLUFF THE DRAW.', body: `Press “I CAN'T PLAY — DRAW ${game.activeCards.length}.” You are allowed to do this even if a legal play is already in your hand.` }
-				: { label: 'GUIDED MOVE 4 / 4', title: 'COME BACK NOW—or LATER.', body: 'The draw completed a legal response. Play the glowing set immediately, or decline and wait for the sequence to return.' }
+				: coachStage === 2
+					? game.turn === 'cpu'
+						? { label: 'GUIDED MOVE 3 / 4', title: 'EXPECT A COUNTERPLAY.', body: 'The Machine is raising the rank. Your next lesson is the move that gives the game its name.' }
+						: { label: 'GUIDED MOVE 3 / 4', title: 'BLUFF THE DRAW.', body: `Press D or “DRAW ${game.activeCards.length}.” Once the cards arrive, choose whether to play or pass.` }
+					: { label: 'GUIDED MOVE 4 / 4', title: 'COME BACK NOW—or LATER.', body: 'The draw completed a legal response. Play the glowing set immediately, or decline and wait for the sequence to return.' }
 	const briefing = BRIEFING_STEPS[briefingStep]!
 	const selectionMessage = selectedCards.length === 0
-		? game.activeRank ? `Beat ${game.activeRank} with exactly ${game.activeCards.length}, or add more ${game.activeRank}s.` : 'Open with any same-rank set.'
+		? game.activeRank
+			? game.humanHasDrawn
+				? `Play a legal response, or pass now that the draw is complete.`
+				: `Beat ${game.activeRank}, add more ${game.activeRank}s, or draw before passing.`
+			: 'Open with any same-rank set.'
 		: legalSelection ? 'VALID PLAY' : 'INVALID: MATCH THE RANK OR THE COUNT'
-	const passLabel = game.activeRank && !game.humanHasDrawn && !game.forcedContinuation
-		? `PASS + DRAW ${game.activeCards.length}`
-		: 'PASS TURN'
 	const turnControl = game.phase === 'game-over' ? (
 		<div className="hand-command-bar game-result" aria-label="Game result">
 			<div className="hand-command-copy"><small>FINAL STATUS</small><strong>{game.winner === 'human' ? 'YOU GOT OUT.' : 'YOU WERE LEFT BEHIND.'}</strong><p>{game.winner === 'human' ? 'The Machine surrenders its best card next game.' : 'Your best card belongs to the Machine next game.'}</p></div>
@@ -888,7 +876,7 @@ export function GameTable() {
 					{canDrawNow && (
 						<button className={`machine-button warning ${onboardingMode === 'guided' && coachStage === 2 ? 'coach-target' : ''}`} onClick={humanDraw} aria-keyshortcuts="D">DRAW {game.activeCards.length} <kbd>D</kbd></button>
 					)}
-				{game.turn === 'human' && onboardingMode !== 'guided' && <button className="machine-button" onClick={humanPass} aria-keyshortcuts="Escape">{passLabel} <kbd>ESC</kbd></button>}
+				{canPassNow && onboardingMode !== 'guided' && <button className="machine-button" onClick={humanPass} aria-keyshortcuts="Escape">PASS TURN <kbd>ESC</kbd></button>}
 				{game.activeRank && game.turn === 'human' && game.humanHasDrawn && onboardingMode === 'guided' && !game.forcedContinuation && (
 					<button className={coachStage === 3 ? 'machine-button coach-target-secondary' : 'machine-button'} onClick={humanDecline} aria-keyshortcuts="Escape">I&apos;LL BE BACK LATER <kbd>ESC</kbd></button>
 				)}
