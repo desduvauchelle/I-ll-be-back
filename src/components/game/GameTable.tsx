@@ -57,6 +57,7 @@ interface GameState {
 	gameNumber: number
 	humanWins: number
 	cpuWins: number
+	exchangeCardId: string | null
 	starterNote: string
 	log: string[]
 }
@@ -178,6 +179,7 @@ function isGameState(value: unknown): value is GameState {
 		&& typeof value.forcedContinuation === 'boolean'
 		&& validNullablePlayers
 		&& validNumbers
+		&& (value.exchangeCardId === undefined || value.exchangeCardId === null || typeof value.exchangeCardId === 'string')
 		&& typeof value.starterNote === 'string'
 		&& Array.isArray(value.log)
 		&& value.log.every((entry) => typeof entry === 'string')
@@ -212,6 +214,7 @@ function freshGame(previous?: GameState, tutorial = false): GameState {
 	let starter: Player
 	let starterNote: string
 	let phase: Phase = 'playing'
+	let exchangeCardId: string | null = null
 
 	if (tutorial) {
 		const deck = createDeck()
@@ -249,6 +252,7 @@ function freshGame(previous?: GameState, tutorial = false): GameState {
 
 		if (winner === 'human') {
 			phase = 'exchange'
+			exchangeCardId = best.id
 			starterNote = `The Machine gives you its best card: ${best.rank}. Choose any card to return.`
 		} else {
 			const returned = [...cpu].sort((a, b) => rankValue(a.rank) - rankValue(b.rank))[0]!
@@ -277,6 +281,7 @@ function freshGame(previous?: GameState, tutorial = false): GameState {
 		gameNumber: previous ? previous.gameNumber + 1 : 1,
 		humanWins: previous?.humanWins ?? 0,
 		cpuWins: previous?.cpuWins ?? 0,
+		exchangeCardId,
 		starterNote,
 		log: [starterNote],
 	}
@@ -587,6 +592,9 @@ export function GameTable() {
 		() => game.human.filter((card) => selected.includes(card.id)),
 		[game.human, selected],
 	)
+	const exchangeCard = game.phase === 'exchange'
+		? game.human.find((card) => card.id === game.exchangeCardId) ?? null
+		: null
 	const suggestedPlays = useMemo(
 		() => suggestedPlaysFor(game.human, game.activeRank, game.activeCards.length),
 		[game.activeCards.length, game.activeRank, game.human],
@@ -865,6 +873,7 @@ export function GameTable() {
 				human: sortHand(current.human.filter((card) => card.id !== returned.id)),
 				cpu: sortHand([...current.cpu, returned]),
 				phase: 'playing',
+				exchangeCardId: null,
 			}, `You return ${returned.rank}. The Machine, last game's loser, starts.`))
 			setSelected([])
 		})
@@ -1053,7 +1062,7 @@ export function GameTable() {
 		</div>
 	) : game.phase === 'exchange' ? (
 		<div className="hand-command-bar" aria-label="Card exchange controls">
-			<div className="hand-command-copy"><small>WINNER&apos;S PRIVILEGE</small><strong>RETURN ANY CARD</strong><p>You may return the exact card you received.</p></div>
+			<div className="hand-command-copy"><small>THE MACHINE GAVE YOU {exchangeCard ? `${exchangeCard.rank} OF ${exchangeCard.suit.toUpperCase()}` : 'ITS BEST CARD'}</small><strong>WHAT CARD ARE YOU GIVING BACK?</strong><p>Select one card from your hand with Space, then press Enter to return it.</p></div>
 			<div className="hand-command-actions"><button className="machine-button primary" disabled={!legalSelection} onClick={returnExchangeCard} aria-keyshortcuts="Enter">CONFIRM RETURN <kbd>ENTER</kbd></button></div>
 		</div>
 	) : (
@@ -1160,17 +1169,31 @@ export function GameTable() {
 							<PlayingCardView hidden />
 							<span>{game.drawPile.length} DRAW</span>
 						</div>
-						<div className={`active-play ${feedback?.tone === 'impact' ? 'is-impacting' : ''}`}>
-							<div className="challenge-label">
-								<span>ACTIVE CHALLENGE</span>
-								<strong>{game.activeRank ? `${game.activeCards.length} × ${game.activeRank}` : 'OPEN TABLE'}</strong>
+						{game.phase === 'exchange' ? (
+							<div className="exchange-gift" role="status" aria-live="polite">
+								<div className="exchange-gift-copy">
+									<small>WINNER&apos;S EXCHANGE</small>
+									<strong>THE MACHINE GIVES YOU</strong>
+								</div>
+								<div className="exchange-gift-card">
+									{exchangeCard ? <PlayingCardView card={{ ...exchangeCard, id: `exchange-gift-${exchangeCard.id}` }} /> : <div className="exchange-gift-missing">BEST CARD</div>}
+									<span>NEW CARD</span>
+								</div>
+								<p>WHAT CARD ARE YOU GIVING THE MACHINE BACK?</p>
 							</div>
-							<div className="active-cards">
-								{game.activeCards.length > 0
-									? game.activeCards.map((card) => <PlayingCardView key={card.id} card={card} />)
-									: <div className="open-table">PLAY ANY MATCHING SET</div>}
+						) : (
+							<div className={`active-play ${feedback?.tone === 'impact' ? 'is-impacting' : ''}`}>
+								<div className="challenge-label">
+									<span>ACTIVE CHALLENGE</span>
+									<strong>{game.activeRank ? `${game.activeCards.length} × ${game.activeRank}` : 'OPEN TABLE'}</strong>
+								</div>
+								<div className="active-cards">
+									{game.activeCards.length > 0
+										? game.activeCards.map((card) => <PlayingCardView key={card.id} card={card} />)
+										: <div className="open-table">PLAY ANY MATCHING SET</div>}
+								</div>
 							</div>
-						</div>
+						)}
 					</div>
 
 					<div className="human-zone">

@@ -335,6 +335,16 @@ body:has(.play-page) > div > main { min-height: 0; }
   50% { transform: scale(.84) rotate(2deg); filter: brightness(1.7); box-shadow: 4px 4px 0 #fff, 8px 8px 0 #333, 0 0 26px rgba(255,255,255,.45); }
 }
 .active-play { min-width: 0; position: relative; display: grid; justify-items: center; }
+.exchange-gift { width: min(610px, 100%); min-height: 166px; justify-self: center; display: grid; grid-template-columns: minmax(145px, 1fr) 108px minmax(165px, 1fr); align-items: center; gap: 18px; padding: 13px 18px; border: 1px solid #686c68; background: linear-gradient(105deg, rgba(8,9,8,.96), rgba(28,31,29,.94)); box-shadow: 0 18px 38px rgba(0,0,0,.42), inset 0 0 0 1px rgba(255,255,255,.04); }
+.exchange-gift-copy { display: grid; gap: 6px; }
+.exchange-gift-copy small { color: #838783; font-size: 7px; font-weight: 900; letter-spacing: .17em; }
+.exchange-gift-copy strong { font-family: var(--display); font-size: clamp(22px, 2.2vw, 31px); font-weight: 400; line-height: .95; }
+.exchange-gift-card { position: relative; display: grid; place-items: center; }
+.exchange-gift-card .playing-card { transform: rotate(4deg); box-shadow: 0 18px 28px rgba(0,0,0,.65), 0 0 0 2px white, 0 0 28px rgba(255,255,255,.18); animation: exchangeGiftFloat 1.8s ease-in-out infinite alternate; }
+.exchange-gift-card > span { position: absolute; right: -10px; bottom: 4px; padding: 5px 7px; border: 1px solid white; background: #0c0e0d; color: white; font-size: 6px; font-weight: 900; letter-spacing: .14em; transform: rotate(-4deg); }
+.exchange-gift > p { margin: 0; padding-left: 18px; border-left: 1px solid #555955; color: #d4d7d3; font-size: 9px; font-weight: 900; line-height: 1.45; letter-spacing: .13em; }
+.exchange-gift-missing { display: grid; place-items: center; width: 92px; height: 136px; border: 1px dashed #747874; color: #999d99; font-family: var(--display); font-size: 15px; text-align: center; }
+@keyframes exchangeGiftFloat { from { translate: 0 4px; rotate: -1deg; } to { translate: 0 -6px; rotate: 1deg; } }
 .active-play.is-impacting::before, .active-play.is-impacting::after { content: ''; position: absolute; z-index: -1; width: 180px; height: 180px; top: 50%; left: 50%; border: 2px solid rgba(255,255,255,.85); border-radius: 50%; translate: -50% -50%; animation: countShockwave 1.35s ease-out both; }
 .active-play.is-impacting::after { animation-delay: .16s; }
 .active-play.is-impacting .active-cards { animation: activeCardsImpact .55s cubic-bezier(.2,.8,.2,1) both; }
@@ -541,6 +551,13 @@ kbd { display: inline-grid; place-items: center; min-width: 22px; min-height: 19
   .challenge-label strong { font-size: 23px; }
   .active-cards { width: 100%; min-height: 116px; justify-content: safe center; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
   .active-cards::-webkit-scrollbar { display: none; }
+  .exchange-gift { min-height: 118px; grid-template-columns: minmax(0, 1fr) 74px; gap: 7px 10px; padding: 8px 10px; }
+  .exchange-gift-copy { gap: 3px; }
+  .exchange-gift-copy small { font-size: 6px; }
+  .exchange-gift-copy strong { font-size: clamp(17px, 5vw, 23px); }
+  .exchange-gift > p { grid-column: 1 / -1; padding: 6px 0 0; border-top: 1px solid #555955; border-left: 0; font-size: 7px; text-align: center; }
+  .exchange-gift-card > span { right: -3px; bottom: 1px; font-size: 5px; }
+  .exchange-gift-missing { width: 68px; height: 102px; font-size: 11px; }
   .table-feedback.side-cpu, .table-feedback.side-human, .table-feedback.side-center { top: 12px; right: 8px; bottom: auto; left: auto; translate: 0; }
   .table-feedback { width: min(250px, calc(100% - 16px)); padding: 9px 11px 10px; }
   .table-feedback strong { font-size: 24px; }
@@ -637,7 +654,7 @@ kbd { display: inline-grid; place-items: center; min-width: 22px; min-height: 19
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .playing-card, .machine-button, .table-feedback, .draw-flight-card, .draw-flight > b, .active-play::before, .active-play::after, .active-play .active-cards, .draw-stack .playing-card { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+  .playing-card, .machine-button, .table-feedback, .draw-flight-card, .draw-flight > b, .active-play::before, .active-play::after, .active-play .active-cards, .draw-stack .playing-card, .exchange-gift-card .playing-card { transition-duration: .01ms !important; animation-duration: .01ms !important; }
   .table-feedback { animation: none; opacity: 1; }
   .draw-flight { display: none; }
   ::view-transition-group(*) { animation-duration: .01ms; }
