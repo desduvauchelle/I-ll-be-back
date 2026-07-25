@@ -253,18 +253,15 @@ body:has(.play-page) > div > main { min-height: 0; }
 .coach-strip strong { font-family: var(--display); font-size: 23px; font-weight: 400; letter-spacing: .03em; }
 .coach-strip p { max-width: 760px; margin: 0; color: #555955; font-size: 11px; line-height: 1.45; }
 .coach-strip > button { min-width: 120px; padding: 11px 14px; border: 1px solid #555955; background: transparent; color: #111; cursor: pointer; font-size: 8px; font-weight: 900; letter-spacing: .12em; }
-.game-statusbar { min-height: 64px; display: grid; grid-template-columns: 78px 92px minmax(210px, 1fr) minmax(360px, .9fr) 105px 160px; border-bottom: 1px solid #4b4e4c; background: #181a19; }
+.game-statusbar { min-height: 64px; display: grid; grid-template-columns: 78px 92px minmax(0, 1fr) 105px 160px; border-bottom: 1px solid #4b4e4c; background: #181a19; }
 .game-statusbar > div { display: flex; align-items: center; justify-content: center; gap: 8px; border-right: 1px solid #393c3a; }
 .game-statusbar span { color: #7e827f; font-size: 8px; font-weight: 900; letter-spacing: .12em; }
 .game-statusbar strong { font-family: var(--display); font-size: 21px; font-weight: 400; }
-.game-statusbar .game-status-main { gap: 12px; color: #e7e8e4; font-size: 11px; font-weight: 900; letter-spacing: .16em; }
-.game-status-main i, .control-head i { width: 8px; height: 8px; border-radius: 50%; background: #737773; box-shadow: 0 0 12px rgba(255,255,255,.35); }
+.control-head i { width: 8px; height: 8px; border-radius: 50%; background: #737773; box-shadow: 0 0 12px rgba(255,255,255,.35); }
 .status-icon { display: inline-block; width: 7px; height: 7px; margin-right: 2px; background: #c8cbc7; }
 .status-icon.human { border-radius: 50%; }
 .status-icon.machine { border: 1px solid #c8cbc7; background: transparent; box-shadow: inset 0 0 0 1px #181a19; }
-.game-statusbar .game-status-ranks { min-width: 0; gap: clamp(6px, .75vw, 13px); padding-inline: 13px; overflow: hidden; white-space: nowrap; }
-.game-status-ranks b { font-family: var(--display); font-size: 16px; font-weight: 400; }
-.game-status-ranks span { color: #555955; font-size: 6px; }
+.game-statusbar .game-status-spacer { min-width: 0; }
 .game-statusbar .game-utility-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border-right: 0; }
 .game-utility-actions button { min-width: 0; border: 0; border-left: 1px solid #393c3a; background: transparent; color: #777b78; cursor: pointer; font-size: 7px; font-weight: 900; letter-spacing: .1em; transition: background .2s, color .2s; }
 .game-utility-actions button:hover, .game-utility-actions button:focus-visible { background: white; color: black; outline: 0; }
@@ -332,12 +329,16 @@ body:has(.play-page) > div > main { min-height: 0; }
 .opponent-hand-overflow { z-index: 2; flex: 0 0 auto; display: grid; place-items: center; min-width: 34px; height: 34px; margin-left: -15px; border: 1px solid #c8cbc7; border-radius: 50%; background: #111311; color: white; box-shadow: 0 5px 14px rgba(0,0,0,.55); font-family: var(--display); font-size: 14px; letter-spacing: .03em; }
 .table-center { display: grid; grid-template-columns: 130px 1fr; align-items: center; padding: 10px 50px; }
 .draw-stack { display: grid; justify-items: center; gap: 9px; }
-.draw-stack .playing-card { transform: scale(.78) rotate(-3deg); box-shadow: 4px 4px 0 #555, 8px 8px 0 #222; }
+.draw-stack-cards { --draw-stack-scale: .78; width: 92px; height: 136px; position: relative; transform: scale(var(--draw-stack-scale)) rotate(-3deg); transform-origin: center; }
+.draw-stack-cards .playing-card { position: absolute; inset: 0; transform: none; }
+.draw-stack-cards .playing-card:nth-child(1) { transform: translate(10px, 9px) rotate(6deg); filter: brightness(.48); }
+.draw-stack-cards .playing-card:nth-child(2) { transform: translate(5px, 5px) rotate(2deg); filter: brightness(.7); }
+.draw-stack-cards .playing-card:nth-child(3) { box-shadow: 0 9px 16px rgba(0,0,0,.58); }
 .draw-stack > span { color: #777b78; font-size: 8px; font-weight: 900; letter-spacing: .13em; }
-.draw-stack.is-drawing .playing-card { animation: drawPilePulse .62s ease-in-out 2; }
+.draw-stack.is-drawing .draw-stack-cards { animation: drawPilePulse .62s ease-in-out 2; }
 @keyframes drawPilePulse {
-  0%, 100% { transform: scale(.78) rotate(-3deg); filter: brightness(1); }
-  50% { transform: scale(.84) rotate(2deg); filter: brightness(1.7); box-shadow: 4px 4px 0 #fff, 8px 8px 0 #333, 0 0 26px rgba(255,255,255,.45); }
+  0%, 100% { transform: scale(var(--draw-stack-scale)) rotate(-3deg); filter: brightness(1); }
+  50% { transform: scale(calc(var(--draw-stack-scale) + .06)) rotate(2deg); filter: brightness(1.7); }
 }
 .active-play { min-width: 0; position: relative; display: grid; justify-items: center; }
 .exchange-gift { width: min(610px, 100%); min-height: 166px; justify-self: center; display: grid; grid-template-columns: minmax(145px, 1fr) 108px minmax(165px, 1fr); align-items: center; gap: 18px; padding: 13px 18px; border: 1px solid #686c68; background: linear-gradient(105deg, rgba(8,9,8,.96), rgba(28,31,29,.94)); box-shadow: 0 18px 38px rgba(0,0,0,.42), inset 0 0 0 1px rgba(255,255,255,.04); }
@@ -371,7 +372,7 @@ body:has(.play-page) > div > main { min-height: 0; }
 .active-cards .playing-card:first-child { margin-left: 0; }
 .open-table { display: grid; place-items: center; width: 280px; height: 130px; border: 1px dashed #565a57; color: #696d6a; font-size: 9px; font-weight: 900; letter-spacing: .16em; }
 .human-zone { min-width: 0; position: relative; z-index: 2; display: flex; flex-direction: column; padding: 0 38px 12px; }
-.game-keyboard-guide { width: auto; max-width: 100%; min-height: 16px; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; gap: 4px; margin: 2px auto 0; padding: 0; border: 0; background: transparent; color: #666a67; overflow-x: auto; white-space: nowrap; font-size: 5px; font-weight: 900; letter-spacing: .08em; opacity: .68; }
+.game-keyboard-guide { width: auto; max-width: 100%; min-height: 16px; position: relative; z-index: 12; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; gap: 4px; margin: 11px auto 0; padding: 0; border: 0; background: transparent; color: #969a96; overflow-x: auto; white-space: nowrap; font-size: 5px; font-weight: 900; letter-spacing: .08em; text-shadow: 0 1px 3px #000, 0 0 6px #000; opacity: .88; }
 .game-keyboard-guide i { flex: 0 0 1px; width: 1px; height: 8px; margin-inline: 3px; background: #3a3d3b; }
 .game-keyboard-guide kbd { min-width: 14px; min-height: 12px; padding: 1px 3px; border-color: #464a47; background: transparent; color: #747875; font-size: 5px; }
 .possible-plays { width: min(820px, calc(100% - 70px)); min-height: 42px; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 15px; margin: 6px auto 0; padding: 5px 8px 5px 13px; border: 1px solid #3f433f; background: rgba(13,15,14,.92); }
@@ -482,7 +483,7 @@ kbd { display: inline-grid; place-items: center; min-width: 22px; min-height: 19
   .turn-path article:nth-of-type(even) { border-right: 0; }
   .turn-branch { display: none; }
   .rules-reference-grid { grid-template-columns: 1fr 1fr; }
-  .game-statusbar { grid-template-columns: 70px 82px minmax(170px, 1fr) minmax(300px, .9fr) 96px 72px; }
+  .game-statusbar { grid-template-columns: 70px 82px minmax(0, 1fr) 96px 72px; }
   .game-grid { grid-template-columns: minmax(0, 1fr); }
   .control-panel { border-left: 1px solid #4b4e4c; border-top: 0; }
   .control-panel > .control-head { grid-column: auto; }
@@ -501,7 +502,7 @@ kbd { display: inline-grid; place-items: center; min-width: 22px; min-height: 19
   .opponent-hand-overflow { min-width: 30px; height: 30px; margin-left: -10px; font-size: 12px; }
   .table-center { grid-template-columns: 88px minmax(0, 1fr); padding: 4px 28px; }
   .draw-stack { gap: 3px; }
-  .draw-stack .playing-card { transform: scale(.66) rotate(-3deg); }
+  .draw-stack-cards { --draw-stack-scale: .66; width: 78px; height: 116px; }
   .challenge-label { gap: 2px; margin-bottom: 4px; }
   .challenge-label strong { font-size: 24px; }
   .active-cards { min-height: 122px; }
@@ -573,27 +574,24 @@ kbd { display: inline-grid; place-items: center; min-width: 22px; min-height: 19
   .play-utility-title { display: none; }
   .play-utility-home b { font-size: 0; }
   .play-utility-home b::after { content: 'BACK'; font-size: 8px; }
-  .game-statusbar { min-height: 52px; grid-template-columns: 48px 58px minmax(105px, 1fr) 66px 44px; }
-  .game-status-ranks, .game-training-button { display: none !important; }
+  .game-statusbar { min-height: 52px; grid-template-columns: 48px 58px minmax(0, 1fr) 66px 44px; }
+  .game-training-button { display: none !important; }
   .game-statusbar .game-utility-actions { grid-template-columns: 1fr; }
   .game-restart-button b { display: none; }
   .game-restart-button span { font-size: 16px; }
-  .game-statusbar > div:not(.game-status-main) { flex-direction: column; gap: 1px; }
+  .game-statusbar > div:not(.game-status-spacer) { flex-direction: column; gap: 1px; }
   .game-statusbar span { font-size: 6px; }
   .game-statusbar strong { font-size: 18px; }
-  .game-statusbar .game-status-main { gap: 7px; padding-inline: 7px; text-align: center; font-size: 7px; letter-spacing: .1em; }
-  .game-status-main i { width: 6px; height: 6px; flex: 0 0 6px; }
   .game-grid { grid-template-columns: minmax(0, 1fr); }
   .game-board { min-height: 0; grid-template-rows: 82px minmax(125px, 1fr) minmax(350px, 55%); overflow: clip; }
   .game-board::before { inset: 8px; }
   .opponent-zone { padding: 12px 14px 0; }
   .human-zone { padding: 0 10px 12px; }
-  .zone-label { font-size: 8px; }
   .opponent-hand { height: 84px; padding-top: 0; }
   .opponent-hand .playing-card { margin-left: -40px; transform: scale(.6); }
   .table-center { grid-template-columns: 62px minmax(0, 1fr); gap: 4px; padding: 5px 10px; }
   .draw-stack { gap: 2px; }
-  .draw-stack .playing-card { transform: scale(.6) rotate(-3deg); box-shadow: 3px 3px 0 #555, 6px 6px 0 #222; }
+  .draw-stack-cards { --draw-stack-scale: .6; width: 68px; height: 102px; }
   .draw-stack > span { font-size: 6px; }
   .challenge-label { margin-bottom: 6px; }
   .challenge-label strong { font-size: 23px; }
@@ -675,7 +673,6 @@ kbd { display: inline-grid; place-items: center; min-width: 22px; min-height: 19
   .rule-deal-visual, .rule-draw-stack { padding-left: 30px; }
   .rules-reference-grid article { padding: 22px 18px; }
   .game-statusbar { grid-template-columns: 43px 51px minmax(96px, 1fr) 60px 40px; }
-  .game-statusbar .game-status-main { font-size: 6px; letter-spacing: .07em; }
   .game-board { min-height: 0; grid-template-rows: 78px minmax(120px, 1fr) minmax(350px, 57%); }
   .opponent-zone { padding-inline: 11px; }
   .table-center { grid-template-columns: 54px minmax(0, 1fr); padding-inline: 7px; }
@@ -702,7 +699,7 @@ kbd { display: inline-grid; place-items: center; min-width: 22px; min-height: 19
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .playing-card, .machine-button, .table-feedback, .draw-flight-card, .draw-flight > b, .active-play::before, .active-play::after, .active-play .active-cards, .draw-stack .playing-card, .exchange-gift-card .playing-card { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+  .playing-card, .machine-button, .table-feedback, .draw-flight-card, .draw-flight > b, .active-play::before, .active-play::after, .active-play .active-cards, .draw-stack-cards, .exchange-gift-card .playing-card { transition-duration: .01ms !important; animation-duration: .01ms !important; }
   .table-feedback { animation: none; opacity: 1; }
   .draw-flight { display: none; }
   ::view-transition-group(*) { animation-duration: .01ms; }

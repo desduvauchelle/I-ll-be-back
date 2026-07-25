@@ -1118,13 +1118,6 @@ export function GameTable() {
 		return () => document.removeEventListener('keydown', handleTableKeyDown)
 	})
 
-	const status = game.phase === 'game-over'
-		? game.winner === 'human' ? 'MISSION COMPLETE' : 'THE MACHINE WON'
-		: game.phase === 'exchange'
-			? 'CHOOSE A CARD TO RETURN'
-			: game.awaitingDecision && game.turn === 'human'
-				? 'THE SEQUENCE CAME BACK TO YOU'
-				: game.turn === 'human' ? 'YOUR MOVE' : 'MACHINE THINKING'
 	const extraHandCards = Math.max(0, game.human.length - 8)
 	const mobileHandMargin = -Math.min(46, 14 + extraHandCards * 3)
 	const mobileCardSpread = Math.max(8, 18 - extraHandCards * 1.25)
@@ -1219,8 +1212,7 @@ export function GameTable() {
 			<div className="game-statusbar">
 				<div><span>GAME</span><strong>{String(game.gameNumber).padStart(2, '0')}</strong></div>
 				<div><span><i className="status-icon human" aria-hidden="true" /> YOU</span><strong>{game.humanWins}</strong></div>
-				<div className="game-status-main"><i />{status}</div>
-				<div className="game-status-ranks" aria-label="Card rank: three is low and two is high"><span>LOW</span>{RANKS.map((rank) => <b key={rank}>{rank}</b>)}<span>HIGH</span></div>
+				<div className="game-status-spacer" aria-hidden="true" />
 				<div><span><i className="status-icon machine" aria-hidden="true" /> MACHINE</span><strong>{game.cpuWins}</strong></div>
 				<div className="game-utility-actions">
 					<button className="game-training-button" type="button" onClick={replayTraining}>TRAINING</button>
@@ -1257,7 +1249,6 @@ export function GameTable() {
 						</div>
 					)}
 					<div className="opponent-zone">
-						<div className="zone-label"><span>THE MACHINE</span><b>{game.cpu.length} cards</b></div>
 						<div className="opponent-hand" aria-label={`The Machine has ${game.cpu.length} cards`}>
 							{visibleCpuCards.map((card) => <PlayingCardView key={card.id} card={card} hidden />)}
 							{hiddenCpuCardCount > 0 && <span className="opponent-hand-overflow" aria-hidden="true">+{hiddenCpuCardCount}</span>}
@@ -1266,7 +1257,11 @@ export function GameTable() {
 
 					<div className="table-center">
 						<div className={`draw-stack ${drawAnimation ? 'is-drawing' : ''}`}>
-							<PlayingCardView hidden />
+							<div className="draw-stack-cards" aria-hidden="true">
+								<PlayingCardView hidden />
+								<PlayingCardView hidden />
+								<PlayingCardView hidden />
+							</div>
 							<span>{game.drawPile.length} DRAW</span>
 						</div>
 						{game.phase === 'exchange' ? (
@@ -1297,7 +1292,6 @@ export function GameTable() {
 					</div>
 
 					<div className="human-zone">
-						<div className="zone-label"><span>YOUR HAND</span><b>{game.human.length} cards</b></div>
 						{turnControl}
 						<div className="possible-plays" aria-label="Possible plays and quick actions">
 							<div className="possible-plays-label"><span>POSSIBLE PLAYS</span><small>ENTER COMMITS</small></div>
