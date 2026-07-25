@@ -904,7 +904,11 @@ export function GameTable() {
 		const normalizedIndex = (requestedIndex + elements.length) % elements.length
 		zoneIndexRef.current[zone] = normalizedIndex
 		if (zone === 'cards') setFocusedCardIndex(normalizedIndex)
-		window.requestAnimationFrame(() => elements[normalizedIndex]?.focus())
+		window.requestAnimationFrame(() => {
+			const nextElement = elements[normalizedIndex]
+			nextElement?.focus()
+			if (zone === 'combos') nextElement?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+		})
 		return true
 	}
 
@@ -1175,7 +1179,7 @@ export function GameTable() {
 								<div className="possible-play-options">
 									{suggestedPlays.map((play) => {
 										const active = selected.length === play.cards.length && play.cards.every((card) => selected.includes(card.id))
-										return <button key={play.id} type="button" className={`possible-play-option ${active ? 'is-active' : ''}`} aria-pressed={active} onClick={() => selectSuggestedPlay(play)}><span>[</span><b>{play.label}</b><span>]</span></button>
+										return <button key={play.id} type="button" className={`possible-play-option ${active ? 'is-active' : ''}`} aria-label={`${play.label} possible play${active ? ', cards selected' : ''}`} aria-pressed={active} onClick={() => selectSuggestedPlay(play)}><span>[</span><b>{play.label}</b><span>]</span></button>
 									})}
 								</div>
 							</div>
