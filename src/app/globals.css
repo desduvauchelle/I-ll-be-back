@@ -507,7 +507,14 @@ kbd { display: inline-grid; place-items: center; min-width: 22px; min-height: 19
   .active-cards { min-height: 122px; }
   .human-zone { padding: 0 20px 7px; }
   .hand-command-bar { min-height: 62px; margin-top: 4px; }
-  .possible-plays { min-height: 38px; margin-top: 4px; }
+  .possible-plays { min-height: 38px; position: relative; gap: 10px; margin-top: 4px; padding-right: 5px; }
+  .possible-plays-label { padding-right: 10px; }
+  .possible-plays-label small { font-size: 0; }
+  .possible-plays-label small::after { content: 'SWIPE OR \2190  \2192'; font-size: 6px; }
+  .possible-play-options { gap: 6px; padding-inline: 6px 18px; scroll-snap-type: x proximity; overscroll-behavior-inline: contain; touch-action: pan-x; -webkit-overflow-scrolling: touch; }
+  .possible-play-option { scroll-snap-align: start; padding-inline: 7px; }
+  .play-break-warning { gap: 0; margin-left: 1px; padding-left: 4px; font-size: 0; }
+  .play-break-warning i { width: 13px; height: 13px; font-size: 8px; }
   .human-hand { min-width: 0; min-height: 132px; justify-content: flex-start; padding: 24px 36px 0; overflow-x: auto; overflow-y: hidden; overscroll-behavior-inline: contain; scroll-padding-inline: 36px; touch-action: pan-x; -webkit-overflow-scrolling: touch; }
   .human-hand::after { content: ''; flex: 0 0 36px; height: 1px; }
   .human-hand .playing-card { flex: 0 0 78px; margin-left: var(--mobile-hand-margin, -14px); }
