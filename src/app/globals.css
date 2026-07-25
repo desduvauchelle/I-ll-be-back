@@ -253,7 +253,7 @@ body:has(.play-page) > div > main { min-height: 0; }
 .coach-strip strong { font-family: var(--display); font-size: 23px; font-weight: 400; letter-spacing: .03em; }
 .coach-strip p { max-width: 760px; margin: 0; color: #555955; font-size: 11px; line-height: 1.45; }
 .coach-strip > button { min-width: 120px; padding: 11px 14px; border: 1px solid #555955; background: transparent; color: #111; cursor: pointer; font-size: 8px; font-weight: 900; letter-spacing: .12em; }
-.game-statusbar { min-height: 64px; display: grid; grid-template-columns: 78px 92px minmax(210px, 1fr) minmax(360px, .9fr) 105px 78px; border-bottom: 1px solid #4b4e4c; background: #181a19; }
+.game-statusbar { min-height: 64px; display: grid; grid-template-columns: 78px 92px minmax(210px, 1fr) minmax(360px, .9fr) 105px 160px; border-bottom: 1px solid #4b4e4c; background: #181a19; }
 .game-statusbar > div { display: flex; align-items: center; justify-content: center; gap: 8px; border-right: 1px solid #393c3a; }
 .game-statusbar span { color: #7e827f; font-size: 8px; font-weight: 900; letter-spacing: .12em; }
 .game-statusbar strong { font-family: var(--display); font-size: 21px; font-weight: 400; }
@@ -265,8 +265,12 @@ body:has(.play-page) > div > main { min-height: 0; }
 .game-statusbar .game-status-ranks { min-width: 0; gap: clamp(6px, .75vw, 13px); padding-inline: 13px; overflow: hidden; white-space: nowrap; }
 .game-status-ranks b { font-family: var(--display); font-size: 16px; font-weight: 400; }
 .game-status-ranks span { color: #555955; font-size: 6px; }
-.game-training-button { border: 0; border-left: 1px solid #393c3a; background: transparent; color: #777b78; cursor: pointer; font-size: 7px; font-weight: 900; letter-spacing: .11em; transition: background .2s, color .2s; }
-.game-training-button:hover, .game-training-button:focus-visible { background: white; color: black; outline: 0; }
+.game-statusbar .game-utility-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border-right: 0; }
+.game-utility-actions button { min-width: 0; border: 0; border-left: 1px solid #393c3a; background: transparent; color: #777b78; cursor: pointer; font-size: 7px; font-weight: 900; letter-spacing: .1em; transition: background .2s, color .2s; }
+.game-utility-actions button:hover, .game-utility-actions button:focus-visible { background: white; color: black; outline: 0; }
+.game-restart-button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
+.game-restart-button span { color: inherit; font-size: 13px; line-height: 1; }
+.game-restart-button b { font-size: inherit; }
 .game-grid { min-height: 0; flex: 1; display: grid; grid-template-columns: minmax(0, 1fr); }
 .game-board { min-width: 0; min-height: 0; display: grid; grid-template-rows: minmax(95px, 16%) minmax(170px, 1fr) minmax(310px, 42%); position: relative; overflow: hidden; background: radial-gradient(ellipse at center, rgba(255,255,255,.08), transparent 60%), repeating-linear-gradient(90deg, transparent 0 78px, rgba(255,255,255,.018) 79px 80px), #111311; }
 .game-board::before { content: ''; position: absolute; inset: 22px; border: 1px solid rgba(255,255,255,.08); pointer-events: none; }
@@ -538,8 +542,11 @@ kbd { display: inline-grid; place-items: center; min-width: 22px; min-height: 19
   .play-utility-title { display: none; }
   .play-utility-home b { font-size: 0; }
   .play-utility-home b::after { content: 'BACK'; font-size: 8px; }
-  .game-statusbar { min-height: 52px; grid-template-columns: 48px 58px minmax(105px, 1fr) 66px; }
+  .game-statusbar { min-height: 52px; grid-template-columns: 48px 58px minmax(105px, 1fr) 66px 44px; }
   .game-status-ranks, .game-training-button { display: none !important; }
+  .game-statusbar .game-utility-actions { grid-template-columns: 1fr; }
+  .game-restart-button b { display: none; }
+  .game-restart-button span { font-size: 16px; }
   .game-statusbar > div:not(.game-status-main) { flex-direction: column; gap: 1px; }
   .game-statusbar span { font-size: 6px; }
   .game-statusbar strong { font-size: 18px; }
@@ -636,7 +643,7 @@ kbd { display: inline-grid; place-items: center; min-width: 22px; min-height: 19
   .rule-card { flex-basis: 64px; width: 64px; height: 96px; }
   .rule-deal-visual, .rule-draw-stack { padding-left: 30px; }
   .rules-reference-grid article { padding: 22px 18px; }
-  .game-statusbar { grid-template-columns: 43px 51px minmax(96px, 1fr) 60px; }
+  .game-statusbar { grid-template-columns: 43px 51px minmax(96px, 1fr) 60px 40px; }
   .game-statusbar .game-status-main { font-size: 6px; letter-spacing: .07em; }
   .game-board { min-height: 0; grid-template-rows: 78px minmax(120px, 1fr) minmax(350px, 57%); }
   .opponent-zone { padding-inline: 11px; }

@@ -919,6 +919,31 @@ export function GameTable() {
 		}, 1100)
 	}
 
+	function restartGame() {
+		cancelComputerSequence()
+		if (feedbackTimerRef.current) window.clearTimeout(feedbackTimerRef.current)
+		if (drawTimerRef.current) window.clearTimeout(drawTimerRef.current)
+		setFeedback(null)
+		setDrawAnimation(null)
+		setSelected([])
+		setPreviewedPlayId(null)
+		if (onboardingMode === 'guided' || onboardingMode === 'complete') dismissOnboarding()
+		animateTableUpdate(() => {
+			setGame((current) => {
+				const restarted = freshGame()
+				const restartNote = 'Current game restarted. Scores preserved and a fresh deal is ready.'
+				return {
+					...restarted,
+					gameNumber: current.gameNumber,
+					humanWins: current.humanWins,
+					cpuWins: current.cpuWins,
+					starterNote: restartNote,
+					log: [restartNote],
+				}
+			})
+		})
+	}
+
 	function runQuickAction(action: string) {
 		if (action === 'draw') humanDraw()
 		else if (action === 'reset') restartForHuman()
@@ -1162,7 +1187,10 @@ export function GameTable() {
 				<div className="game-status-main"><i />{status}</div>
 				<div className="game-status-ranks" aria-label="Card rank: three is low and two is high"><span>LOW</span>{RANKS.map((rank) => <b key={rank}>{rank}</b>)}<span>HIGH</span></div>
 				<div><span><i className="status-icon machine" aria-hidden="true" /> MACHINE</span><strong>{game.cpuWins}</strong></div>
-				<button className="game-training-button" type="button" onClick={replayTraining}>TRAINING</button>
+				<div className="game-utility-actions">
+					<button className="game-training-button" type="button" onClick={replayTraining}>TRAINING</button>
+					<button className="game-restart-button" type="button" onClick={restartGame} aria-label="Restart the current game with a fresh deal while keeping scores"><span aria-hidden="true">↻</span><b>RESTART</b></button>
+				</div>
 			</div>
 
 			<div className="game-grid">
