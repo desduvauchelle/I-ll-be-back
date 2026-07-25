@@ -1194,6 +1194,11 @@ export function GameTable() {
 					<div className="human-zone">
 						<div className="zone-label"><span>YOUR HAND</span><b>{game.human.length} cards</b></div>
 						{turnControl}
+						{game.turn === 'human' && (
+							<div className="game-keyboard-guide" aria-label="Keyboard controls">
+								{game.phase === 'exchange' ? <><kbd>←</kbd><kbd>→</kbd><span>MOVE</span><i /><kbd>SPACE</kbd><span>SELECT</span><i /><kbd>ENTER</kbd><span>RETURN CARD</span></> : <><kbd>↑</kbd><kbd>↓</kbd><span>ZONES</span><i /><kbd>←</kbd><kbd>→</kbd><span>MOVE</span><i /><kbd>SPACE</kbd><span>SELECT CARD</span><i /><kbd>ENTER</kbd><span>ACTIVATE</span></>}
+							</div>
+						)}
 						{showSuggestedPlays && (
 							<div className="possible-plays" aria-label="Possible plays from your hand">
 								<div className="possible-plays-label"><span>POSSIBLE PLAYS</span><small>ENTER PLAYS · ↓ CARDS</small></div>
@@ -1207,7 +1212,6 @@ export function GameTable() {
 						)}
 					<div className="human-hand" role="group" aria-label="Your hand. Swipe or use the arrow keys to move through cards.">
 						<span className="mobile-hand-hint" aria-hidden="true">SWIPE HAND ↔</span>
-						<span className="card-keyboard-helper" aria-hidden="true">{game.phase === 'exchange' ? <><kbd>←</kbd><kbd>→</kbd> MOVE <i /> <kbd>SPACE</kbd> SELECT <i /> <kbd>ENTER</kbd> RETURN CARD</> : <><kbd>←</kbd><kbd>→</kbd> MOVE <i /> <kbd>SPACE</kbd> OR <kbd>ENTER</kbd> SELECT <i /> <kbd>↑</kbd> OPTIONS</>}</span>
 						{game.human.map((card, index) => (
 								<PlayingCardView
 									key={card.id}

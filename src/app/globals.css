@@ -268,7 +268,7 @@ body:has(.play-page) > div > main { min-height: 0; }
 .game-training-button { border: 0; border-left: 1px solid #393c3a; background: transparent; color: #777b78; cursor: pointer; font-size: 7px; font-weight: 900; letter-spacing: .11em; transition: background .2s, color .2s; }
 .game-training-button:hover, .game-training-button:focus-visible { background: white; color: black; outline: 0; }
 .game-grid { min-height: 0; flex: 1; display: grid; grid-template-columns: minmax(0, 1fr); }
-.game-board { min-width: 0; min-height: 0; display: grid; grid-template-rows: minmax(95px, 16%) minmax(175px, 1fr) minmax(275px, 38%); position: relative; overflow: hidden; background: radial-gradient(ellipse at center, rgba(255,255,255,.08), transparent 60%), repeating-linear-gradient(90deg, transparent 0 78px, rgba(255,255,255,.018) 79px 80px), #111311; }
+.game-board { min-width: 0; min-height: 0; display: grid; grid-template-rows: minmax(95px, 16%) minmax(170px, 1fr) minmax(310px, 42%); position: relative; overflow: hidden; background: radial-gradient(ellipse at center, rgba(255,255,255,.08), transparent 60%), repeating-linear-gradient(90deg, transparent 0 78px, rgba(255,255,255,.018) 79px 80px), #111311; }
 .game-board::before { content: ''; position: absolute; inset: 22px; border: 1px solid rgba(255,255,255,.08); pointer-events: none; }
 .game-event-layer { position: absolute; inset: 0; z-index: 30; overflow: hidden; pointer-events: none; }
 .table-feedback { --feedback-angle: -3deg; position: absolute; width: min(300px, calc(100% - 28px)); display: grid; gap: 3px; padding: 12px 14px 13px; border: 1px solid #cfd1cc; background: rgba(10,11,10,.96); color: white; box-shadow: 8px 8px 0 rgba(0,0,0,.3), 0 0 20px rgba(255,255,255,.1); transform-origin: right center; animation: feedbackIn 1.2s cubic-bezier(.16,.8,.28,1) both; }
@@ -355,7 +355,10 @@ body:has(.play-page) > div > main { min-height: 0; }
 .active-cards .playing-card:nth-child(even) { transform: rotate(3deg); }
 .active-cards .playing-card:first-child { margin-left: 0; }
 .open-table { display: grid; place-items: center; width: 280px; height: 130px; border: 1px dashed #565a57; color: #696d6a; font-size: 9px; font-weight: 900; letter-spacing: .16em; }
-.human-zone { min-width: 0; position: relative; z-index: 2; display: grid; grid-template-rows: auto auto auto 1fr; padding: 0 38px 20px; }
+.human-zone { min-width: 0; position: relative; z-index: 2; display: grid; grid-template-rows: auto auto auto auto 1fr; padding: 0 38px 20px; }
+.game-keyboard-guide { width: min(820px, calc(100% - 70px)); min-height: 27px; display: flex; align-items: center; justify-content: center; gap: 6px; margin: 4px auto 0; padding: 4px 10px; border: 1px solid #3f433f; background: #0c0e0d; color: #8e928f; overflow-x: auto; white-space: nowrap; font-size: 6px; font-weight: 900; letter-spacing: .08em; }
+.game-keyboard-guide i { flex: 0 0 1px; width: 1px; height: 13px; margin-inline: 4px; background: #454945; }
+.game-keyboard-guide kbd { min-width: 18px; min-height: 16px; padding: 1px 4px; font-size: 6px; }
 .possible-plays { width: min(820px, calc(100% - 70px)); min-height: 42px; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 15px; margin: 6px auto 0; padding: 5px 8px 5px 13px; border: 1px solid #3f433f; background: rgba(13,15,14,.92); }
 .possible-plays-label { display: grid; gap: 2px; padding-right: 14px; border-right: 1px solid #3f433f; white-space: nowrap; }
 .possible-plays-label span { color: #b6bab6; font-size: 7px; font-weight: 900; letter-spacing: .14em; }
@@ -372,15 +375,11 @@ body:has(.play-page) > div > main { min-height: 0; }
 .possible-play-option.is-active:focus { background: white; color: #0a0b0a; box-shadow: 0 0 0 4px #0a0b0a, 0 0 0 7px white, 0 7px 14px rgba(0,0,0,.5); }
 .human-hand { min-height: 145px; position: relative; display: flex; align-items: flex-end; justify-content: center; padding: 12px 70px 0; overflow: visible; }
 .mobile-hand-hint { display: none; }
-.card-keyboard-helper { position: absolute; z-index: 10; top: 4px; left: 50%; display: none; align-items: center; gap: 6px; padding: 5px 8px; border: 1px solid #5d615e; background: #0c0e0d; color: #949895; translate: -50% 0; white-space: nowrap; font-size: 6px; font-weight: 900; letter-spacing: .08em; box-shadow: 5px 5px 0 rgba(0,0,0,.25); }
-.human-hand:focus-within .card-keyboard-helper { display: flex; }
-.card-keyboard-helper i { width: 1px; height: 14px; background: #454945; }
-.card-keyboard-helper kbd { min-width: 18px; min-height: 15px; padding: 1px 4px; font-size: 6px; }
 .human-hand .playing-card { --card-lift: 0px; --card-spread: 0px; margin-left: -42px; translate: 0 var(--card-lift); transform: translateX(var(--card-spread)); }
 .human-hand .playing-card:first-child { margin-left: 0; }
-.human-hand .playing-card:is(:hover, :focus-visible) { --card-lift: -18px; z-index: 7; }
-.human-hand .playing-card.is-option-preview { --card-lift: -20px; box-shadow: 0 0 0 2px #bfc2be, 0 16px 28px rgba(0,0,0,.55), 0 0 22px rgba(255,255,255,.22); z-index: 5; }
-.human-hand .playing-card.is-selected { --card-lift: -27px; box-shadow: 0 0 0 3px #fff, 0 15px 30px rgba(0,0,0,.55); z-index: 6; }
+.human-hand .playing-card:is(:hover, :focus-visible) { --card-lift: -18px; }
+.human-hand .playing-card.is-option-preview { --card-lift: -20px; box-shadow: 0 0 0 2px #bfc2be, 0 16px 28px rgba(0,0,0,.55), 0 0 22px rgba(255,255,255,.22); }
+.human-hand .playing-card.is-selected { --card-lift: -27px; box-shadow: 0 0 0 3px #fff, 0 15px 30px rgba(0,0,0,.55); }
 .human-hand .playing-card:is(:hover, :focus-visible, .is-selected, .is-option-preview) ~ .playing-card { --card-spread: 45px; }
 .human-hand .playing-card:focus-visible { outline: 3px solid white; outline-offset: 5px; }
 .human-hand .playing-card.is-coached:not(.is-selected) { animation: coachCard 1.15s ease-in-out infinite alternate; box-shadow: 0 0 0 3px white, 0 0 26px rgba(255,255,255,.42); z-index: 5; }
@@ -526,7 +525,7 @@ kbd { display: inline-grid; place-items: center; min-width: 22px; min-height: 19
   .game-statusbar .game-status-main { gap: 7px; padding-inline: 7px; text-align: center; font-size: 7px; letter-spacing: .1em; }
   .game-status-main i { width: 6px; height: 6px; flex: 0 0 6px; }
   .game-grid { grid-template-columns: minmax(0, 1fr); }
-  .game-board { min-height: 0; grid-template-rows: 88px minmax(140px, 1fr) minmax(320px, 50%); overflow: clip; }
+  .game-board { min-height: 0; grid-template-rows: 82px minmax(125px, 1fr) minmax(350px, 55%); overflow: clip; }
   .game-board::before { inset: 8px; }
   .opponent-zone { padding: 12px 14px 0; }
   .human-zone { padding: 0 10px 12px; }
@@ -566,6 +565,7 @@ kbd { display: inline-grid; place-items: center; min-width: 22px; min-height: 19
   .card-corner { font-size: 16px; }
   .human-hand .card-corner small { margin-top: 5px; font-size: 14px; }
   .possible-plays { width: 100%; grid-template-columns: auto minmax(0, 1fr); gap: 8px; margin-top: 5px; padding-left: 9px; }
+  .game-keyboard-guide { width: 100%; justify-content: flex-start; }
   .possible-plays-label { padding-right: 8px; }
   .possible-plays-label small { display: none; }
   .possible-play-option { min-height: 34px; font-size: 15px; }
@@ -577,7 +577,6 @@ kbd { display: inline-grid; place-items: center; min-width: 22px; min-height: 19
   .human-hand .playing-card:is(:hover, :focus-visible, .is-selected, .is-option-preview) ~ .playing-card { --card-spread: 18px; }
   .mobile-hand-hint { position: absolute; top: 8px; left: 18px; display: block; color: #707470; font-size: 7px; font-weight: 900; letter-spacing: .14em; }
   .human-hand:focus-within .mobile-hand-hint { display: none; }
-  .card-keyboard-helper { top: 5px; left: 18px; translate: 0 0; }
   .hand-command-bar { width: 100%; grid-template-columns: minmax(0, 1fr); gap: 8px; margin-top: 8px; padding: 10px; }
   .hand-command-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .hand-command-actions .machine-button { min-height: 46px; }
@@ -610,7 +609,7 @@ kbd { display: inline-grid; place-items: center; min-width: 22px; min-height: 19
   .rules-reference-grid article { padding: 22px 18px; }
   .game-statusbar { grid-template-columns: 43px 51px minmax(96px, 1fr) 60px; }
   .game-statusbar .game-status-main { font-size: 6px; letter-spacing: .07em; }
-  .game-board { min-height: 0; grid-template-rows: 82px minmax(135px, 1fr) minmax(320px, 52%); }
+  .game-board { min-height: 0; grid-template-rows: 78px minmax(120px, 1fr) minmax(350px, 57%); }
   .opponent-zone { padding-inline: 11px; }
   .table-center { grid-template-columns: 54px minmax(0, 1fr); padding-inline: 7px; }
   .playing-card { flex-basis: 64px; width: 64px; height: 96px; }
