@@ -986,8 +986,9 @@ export function GameTable() {
 					<div className="human-zone">
 						<div className="zone-label"><span>YOUR HAND</span><b>{game.human.length} cards</b></div>
 						{turnControl}
-						<div className="human-hand">
-							{game.human.map((card, index) => (
+					<div className="human-hand" role="group" aria-label="Your hand. Swipe or use the arrow keys to move through cards.">
+						<span className="mobile-hand-hint" aria-hidden="true">SWIPE HAND ↔</span>
+						{game.human.map((card, index) => (
 								<PlayingCardView
 									key={card.id}
 									card={card}
