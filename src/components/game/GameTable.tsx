@@ -574,8 +574,6 @@ export function GameTable() {
 		&& !game.forcedContinuation && (!game.activeRank || game.humanHasDrawn)
 	const canContinueNow = game.phase === 'playing' && game.turn === 'human' && game.awaitingDecision && humanCanContinue
 	const canRestartNow = game.phase === 'playing' && game.turn === 'human' && game.awaitingDecision
-	const canConfirmNow = game.phase === 'exchange' ? legalSelection : canPlayNow
-
 	useEffect(() => {
 		let restoredGame: GameState | null = null
 		try {
@@ -1031,10 +1029,11 @@ export function GameTable() {
 			)}
 			<div className="game-statusbar">
 				<div><span>GAME</span><strong>{String(game.gameNumber).padStart(2, '0')}</strong></div>
-				<div><span>YOU</span><strong>{game.humanWins}</strong></div>
+				<div><span><i className="status-icon human" aria-hidden="true" /> YOU</span><strong>{game.humanWins}</strong></div>
 				<div className="game-status-main"><i />{status}</div>
-				<div><span>MACHINE</span><strong>{game.cpuWins}</strong></div>
-				<div><span>DRAW</span><strong>{game.drawPile.length}</strong></div>
+				<div className="game-status-ranks" aria-label="Card rank: three is low and two is high"><span>LOW</span>{RANKS.map((rank) => <b key={rank}>{rank}</b>)}<span>HIGH</span></div>
+				<div><span><i className="status-icon machine" aria-hidden="true" /> MACHINE</span><strong>{game.cpuWins}</strong></div>
+				<button className="game-training-button" type="button" onClick={replayTraining}>TRAINING</button>
 			</div>
 
 			<div className="game-grid">
@@ -1112,32 +1111,6 @@ export function GameTable() {
 					</div>
 				</div>
 
-				<aside className="control-panel">
-					<div className="control-head">
-						<span>TURN CONTROL</span>
-						<div className="control-tools"><button type="button" onClick={replayTraining}>REPLAY TRAINING</button><i className={game.turn === 'human' ? 'online' : ''} /></div>
-					</div>
-					<div className="keyboard-panel" aria-label="Keyboard shortcuts">
-						<small>KEYBOARD / CURRENT ACTIONS</small>
-						<div><kbd>←</kbd><kbd>↑</kbd><kbd>→</kbd><kbd>↓</kbd><span>MOVE</span></div>
-						<div><kbd>SPACE</kbd><span>SELECT</span></div>
-						<div className={canConfirmNow ? '' : 'is-unavailable'}><kbd>ENTER</kbd><span>{game.phase === 'exchange' ? 'RETURN' : 'PLAY'}</span></div>
-						<div className={canDrawNow ? '' : 'is-unavailable'}><kbd>D</kbd><span>DRAW</span></div>
-						<div className={canPassNow ? '' : 'is-unavailable'}><kbd>ESC</kbd><span>PASS</span></div>
-						{canRestartNow && <div><kbd>R</kbd><span>CLEAR</span></div>}
-						{game.awaitingDecision && game.turn === 'human' && <div className={canContinueNow ? '' : 'is-unavailable'}><kbd>C</kbd><span>CONTINUE</span></div>}
-						{game.phase === 'game-over' && <div><kbd>N</kbd><span>NEXT GAME</span></div>}
-					</div>
-
-					<div className="intel-panel">
-						<div className="control-head"><span>ACTION LOG</span></div>
-						<ol>{game.log.map((entry, index) => <li key={`${entry}-${index}`} className={index === 0 ? 'latest' : ''}>{entry}</li>)}</ol>
-					</div>
-				</aside>
-			</div>
-
-			<div className="rank-ticker">
-				<span>LOW</span>{RANKS.map((rank) => <b key={rank}>{rank}</b>)}<span>HIGH</span>
 			</div>
 		</div>
 	)
