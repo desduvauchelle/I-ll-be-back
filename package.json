@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "build:cloudflare": "opennextjs-cloudflare build",
+		"build:cloudflare": "opennextjs-cloudflare build && wrangler deploy --dry-run --outdir .open-next/wrangler-dist && node finalize-cloudflare-build.mjs",
     "preview:cloudflare": "opennextjs-cloudflare preview",
     "start": "next start",
     "lint": "next lint",
