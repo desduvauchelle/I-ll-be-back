@@ -16,7 +16,9 @@ import {
 
 type Player = 'human' | 'cpu'
 type Phase = 'playing' | 'exchange' | 'game-over'
-type OnboardingMode = 'prompt' | 'briefing' | 'guided' | 'complete' | 'off'
+type OnboardingMode = 'checking' | 'prompt' | 'briefing' | 'guided' | 'complete' | 'off'
+
+const ONBOARDING_STORAGE_KEY = 'ill-be-back:onboarding:v1'
 
 interface GameState {
 	human: PlayingCard[]
@@ -309,9 +311,11 @@ function PlayingCardView({
 }
 
 export function GameTable() {
-	const [game, setGame] = useState<GameState>(() => freshGame())
+	// A stable opening state keeps server and browser markup identical. The real
+	// random deal is created after mount while the memory check covers the table.
+	const [game, setGame] = useState<GameState>(() => freshGame(undefined, true))
 	const [selected, setSelected] = useState<string[]>([])
-	const [onboardingMode, setOnboardingMode] = useState<OnboardingMode>('prompt')
+	const [onboardingMode, setOnboardingMode] = useState<OnboardingMode>('checking')
 	const [briefingStep, setBriefingStep] = useState(0)
 	const [coachStage, setCoachStage] = useState(0)
 
@@ -337,8 +341,17 @@ export function GameTable() {
 	const playableSelection = legalSelection && guidedSelectionValid
 
 	useEffect(() => {
+		setGame(freshGame())
+		try {
+			setOnboardingMode(window.localStorage.getItem(ONBOARDING_STORAGE_KEY) === 'complete' ? 'off' : 'prompt')
+		} catch {
+			setOnboardingMode('prompt')
+		}
+	}, [])
+
+	useEffect(() => {
 		if (game.phase !== 'playing' || game.turn !== 'cpu') return
-		if (onboardingMode === 'prompt' || onboardingMode === 'briefing') return
+		if (onboardingMode === 'checking' || onboardingMode === 'prompt' || onboardingMode === 'briefing') return
 		const timer = window.setTimeout(() => setGame((current) => runComputerTurn(current)), 720)
 		return () => window.clearTimeout(timer)
 	}, [game.phase, game.turn, game.awaitingDecision, game.activeCards.length, game.cpu.length, onboardingMode])
@@ -356,13 +369,36 @@ export function GameTable() {
 			: [...current, card.id])
 	}
 
+	function rememberOnboarding() {
+		try {
+			window.localStorage.setItem(ONBOARDING_STORAGE_KEY, 'complete')
+		} catch {
+			// The game remains playable when private browsing or browser policy blocks storage.
+		}
+	}
+
+	function dismissOnboarding() {
+		rememberOnboarding()
+		setOnboardingMode('off')
+	}
+
+	function finishOnboarding() {
+		rememberOnboarding()
+		setOnboardingMode('complete')
+	}
+
+	function replayTraining() {
+		setBriefingStep(0)
+		setOnboardingMode('briefing')
+	}
+
 	function humanPlay() {
 		if (!playableSelection || game.phase !== 'playing') return
 		setGame((current) => playCards(current, 'human', selectedCards))
 		if (onboardingMode === 'guided') {
 			if (coachStage === 0) setCoachStage(1)
 			else if (coachStage === 1) setCoachStage(2)
-			else if (coachStage === 3) setOnboardingMode('complete')
+			else if (coachStage === 3) finishOnboarding()
 		}
 		setSelected([])
 	}
@@ -381,7 +417,7 @@ export function GameTable() {
 
 	function humanDecline() {
 		setGame((current) => declineTurn(current, 'human'))
-		if (onboardingMode === 'guided' && coachStage === 3) setOnboardingMode('complete')
+		if (onboardingMode === 'guided' && coachStage === 3) finishOnboarding()
 	}
 
 	function beginGuidedGame() {
@@ -425,6 +461,11 @@ export function GameTable() {
 
 	return (
 		<div className="game-console">
+			{onboardingMode === 'checking' && (
+				<div className="onboarding-shade onboarding-loading" aria-live="polite" aria-busy="true">
+					<span>RESTORING PLAYER MEMORY…</span>
+				</div>
+			)}
 			{(onboardingMode === 'prompt' || onboardingMode === 'briefing') && (
 				<div className="onboarding-shade" role="dialog" aria-modal="true" aria-labelledby="onboarding-title">
 					<div className="onboarding-card">
@@ -434,7 +475,7 @@ export function GameTable() {
 								<small>NEW PLAYER DETECTED</small>
 								<h2 id="onboarding-title">WANT A GUIDED<br />FIRST GAME?</h2>
 								<p>We&apos;ll explain the rules, then map out your first four moves at the table. You&apos;ll learn by beating—and bluffing—the Machine.</p>
-								<div className="onboarding-actions"><button className="machine-button primary" onClick={() => setOnboardingMode('briefing')}>TEACH ME THE GAME</button><button className="machine-button" onClick={() => setOnboardingMode('off')}>I KNOW THE RULES</button></div>
+								<div className="onboarding-actions"><button className="machine-button primary" onClick={() => setOnboardingMode('briefing')}>TEACH ME THE GAME</button><button className="machine-button" onClick={dismissOnboarding}>I KNOW THE RULES</button></div>
 							</>
 						) : (
 							<>
@@ -443,7 +484,7 @@ export function GameTable() {
 								<div className="onboarding-visual">{briefing.visual}</div>
 								<p>{briefing.body}</p>
 								<div className="onboarding-dots">{BRIEFING_STEPS.map((step, index) => <i key={step.code} className={index <= briefingStep ? 'active' : ''} />)}</div>
-								<div className="onboarding-actions"><button className="machine-button primary" onClick={() => briefingStep === BRIEFING_STEPS.length - 1 ? beginGuidedGame() : setBriefingStep((step) => step + 1)}>{briefingStep === BRIEFING_STEPS.length - 1 ? 'BEGIN GUIDED GAME' : 'NEXT PROTOCOL'}</button><button className="machine-button" onClick={() => setOnboardingMode('off')}>SKIP TRAINING</button></div>
+								<div className="onboarding-actions"><button className="machine-button primary" onClick={() => briefingStep === BRIEFING_STEPS.length - 1 ? beginGuidedGame() : setBriefingStep((step) => step + 1)}>{briefingStep === BRIEFING_STEPS.length - 1 ? 'BEGIN GUIDED GAME' : 'NEXT PROTOCOL'}</button><button className="machine-button" onClick={dismissOnboarding}>SKIP TRAINING</button></div>
 							</>
 						)}
 					</div>
@@ -453,7 +494,7 @@ export function GameTable() {
 				<div className={`coach-strip ${onboardingMode === 'complete' ? 'complete' : ''}`} role="status">
 					<div className="coach-index">{onboardingMode === 'complete' ? '✓' : `0${coachStage + 1}`}</div>
 					<div><small>{onboardingMode === 'complete' ? 'TRAINING COMPLETE' : coachCopy.label}</small><strong>{onboardingMode === 'complete' ? 'YOU ARE OPERATIONAL.' : coachCopy.title}</strong><p>{onboardingMode === 'complete' ? 'The guardrails are off. Read the count, question every draw, and empty your hand.' : coachCopy.body}</p></div>
-					<button onClick={() => setOnboardingMode('off')}>{onboardingMode === 'complete' ? 'ENTER FREE PLAY' : 'EXIT TRAINING'}</button>
+					<button onClick={dismissOnboarding}>{onboardingMode === 'complete' ? 'ENTER FREE PLAY' : 'EXIT TRAINING'}</button>
 				</div>
 			)}
 			<div className="game-statusbar">
@@ -511,7 +552,7 @@ export function GameTable() {
 				<aside className="control-panel">
 					<div className="control-head">
 						<span>TURN CONTROL</span>
-						<i className={game.turn === 'human' ? 'online' : ''} />
+						<div className="control-tools"><button type="button" onClick={replayTraining}>REPLAY TRAINING</button><i className={game.turn === 'human' ? 'online' : ''} /></div>
 					</div>
 
 					{game.phase === 'game-over' ? (
