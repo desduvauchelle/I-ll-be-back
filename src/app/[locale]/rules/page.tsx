@@ -39,7 +39,7 @@ export default async function RulesPage({ params }: { params: Promise<{ locale: 
 				</div>
 				<div className="rules-hero-summary">
 					<strong>THE WHOLE GAME IN ONE SENTENCE</strong>
-					<p>Add matching cards at the same rank to grow the required count—or play exactly that count at a higher rank. First player with no cards wins.</p>
+					<p>Add matching cards at the same rank to grow the required count—or play exactly that count at a higher rank. Whenever you grow the count, say “I&apos;ll be back.” First player with no cards wins.</p>
 					<div className="rules-rank-key"><small>LOW</small><b>3</b><span>→</span><b>4 · 5 · 6 · 7 · 8 · 9 · 10 · J · Q · K · A</b><span>→</span><b>2</b><small>HIGH</small></div>
 				</div>
 			</header>
@@ -80,7 +80,7 @@ export default async function RulesPage({ params }: { params: Promise<{ locale: 
 					<article className="turn-option is-level">
 						<div className="turn-path-label"><span>OPTION A / SAME RANK</span><b>LEVEL UP</b></div>
 						<div className="rule-equation"><RuleCard rank="3" suit="♠" /><b>+</b><RuleCard rank="3" suit="♥" /><b>=</b><span className="rule-count-badge">2 × 3</span></div>
-						<h3>ADD THE SAME RANK</h3><p>Add one or more 3s. Each card you add increases the required count. The next player must now answer a pair.</p>
+						<h3>ADD THE SAME RANK</h3><p>Add one or more 3s. Each card increases the required count. As you level it up, say <b>“I&apos;ll be back.”</b> The next player must now answer a pair.</p>
 					</article>
 					<article className="turn-option is-beat">
 						<div className="turn-path-label"><span>OPTION B / HIGHER RANK</span><b>BEAT IT</b></div>
@@ -90,7 +90,7 @@ export default async function RulesPage({ params }: { params: Promise<{ locale: 
 					<article className="turn-option is-next-level">
 						<div className="turn-path-label"><span>THEN IT CAN GROW AGAIN</span><b>3 × 5</b></div>
 						<div className="rule-equation"><div className="rule-card-group compact"><RuleCard rank="5" suit="♦" /><RuleCard rank="5" suit="♣" /></div><b>+</b><RuleCard rank="5" suit="♥" /></div>
-						<h3>SAME RANK ADDS TO THE COUNT</h3><p>Add another 5 and the challenge becomes three 5s. The next higher-rank response must contain exactly three matching cards.</p>
+						<h3>SAME RANK ADDS TO THE COUNT</h3><p>Add another 5, say <b>“I&apos;ll be back,”</b> and the challenge becomes three 5s. The next higher-rank response must contain exactly three matching cards.</p>
 					</article>
 				</div>
 			</section>
