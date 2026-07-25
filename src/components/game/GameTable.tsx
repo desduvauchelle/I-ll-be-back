@@ -554,7 +554,6 @@ export function GameTable() {
 	const legalSelection = game.phase === 'exchange'
 		? selectedCards.length === 1
 		: isLegalPlay(selectedCards, game.activeRank, game.activeCards.length)
-	const humanCanContinue = Boolean(chooseComputerPlay(game.human, game.activeRank, game.activeCards.length))
 	const coachedCards = useMemo(() => {
 		if (onboardingMode !== 'guided') return []
 		if (coachStage === 0) return game.human.filter((card) => card.rank === '3')
@@ -567,12 +566,11 @@ export function GameTable() {
 	const guidedSelectionValid = onboardingMode !== 'guided' || ![0, 1, 3].includes(coachStage)
 		|| (selectedCards.length === coachedCards.length && selectedCards.every((card) => coachedCardIds.has(card.id)))
 	const playableSelection = legalSelection && guidedSelectionValid
-	const canPlayNow = game.phase === 'playing' && game.turn === 'human' && !game.awaitingDecision && playableSelection
+	const canPlayNow = game.phase === 'playing' && game.turn === 'human' && playableSelection
 	const canDrawNow = game.phase === 'playing' && game.turn === 'human' && !game.awaitingDecision
 		&& !game.forcedContinuation && !game.humanHasDrawn && Boolean(game.activeRank)
 	const canPassNow = game.phase === 'playing' && game.turn === 'human' && !game.awaitingDecision
 		&& !game.forcedContinuation && (!game.activeRank || game.humanHasDrawn)
-	const canContinueNow = game.phase === 'playing' && game.turn === 'human' && game.awaitingDecision && humanCanContinue
 	const canRestartNow = game.phase === 'playing' && game.turn === 'human' && game.awaitingDecision
 	useEffect(() => {
 		let restoredGame: GameState | null = null
@@ -670,7 +668,7 @@ export function GameTable() {
 	}, [game.human.length])
 
 	function toggleCard(card: PlayingCard) {
-		if (game.phase === 'playing' && (game.turn !== 'human' || game.awaitingDecision)) return
+		if (game.phase === 'playing' && game.turn !== 'human') return
 		if (onboardingMode === 'guided' && coachStage === 2) return
 		if (onboardingMode === 'guided' && [0, 1, 3].includes(coachStage) && !coachedCardIds.has(card.id)) return
 		setSelected((current) => current.includes(card.id)
@@ -827,23 +825,6 @@ export function GameTable() {
 		})
 	}
 
-	function continueForHuman() {
-		if (!canContinueNow) return
-		animateTableUpdate(() => {
-			setGame((current) => addLog(
-				{ ...current, awaitingDecision: false, forcedContinuation: true },
-				'You keep the sequence alive.',
-			))
-		})
-		announceFeedback({
-			side: 'human',
-			tone: 'move',
-			label: 'TABLE CONTROL',
-			title: 'SEQUENCE CONTINUES.',
-			detail: 'PLAY A LEGAL RESPONSE TO KEEP THE PRESSURE ON.',
-		}, 1100)
-	}
-
 	function restartForHuman() {
 		if (!canRestartNow) return
 		animateTableUpdate(() => {
@@ -884,11 +865,6 @@ export function GameTable() {
 			if (key === 'd' && canDrawNow) {
 				event.preventDefault()
 				humanDraw()
-				return
-			}
-			if (key === 'c' && canContinueNow) {
-				event.preventDefault()
-				continueForHuman()
 				return
 			}
 			if (key === 'r' && canRestartNow) {
@@ -952,7 +928,9 @@ export function GameTable() {
 					: { label: 'GUIDED MOVE 4 / 4', title: 'COME BACK NOW—or LATER.', body: 'The draw completed a legal response. Play the glowing set immediately, or decline and wait for the sequence to return.' }
 	const briefing = BRIEFING_STEPS[briefingStep]!
 	const selectionMessage = selectedCards.length === 0
-		? game.activeRank
+		? game.awaitingDecision && game.turn === 'human'
+			? 'Select a legal response to continue—or reset the table and open with anything.'
+			: game.activeRank
 			? game.humanHasDrawn
 				? `Play a legal response, or pass now that the draw is complete.`
 				: `Beat ${game.activeRank}, add more ${game.activeRank}s, or draw before passing.`
@@ -968,16 +946,12 @@ export function GameTable() {
 			<div className="hand-command-copy"><small>WINNER&apos;S PRIVILEGE</small><strong>RETURN ANY CARD</strong><p>You may return the exact card you received.</p></div>
 			<div className="hand-command-actions"><button className="machine-button primary" disabled={!legalSelection} onClick={returnExchangeCard} aria-keyshortcuts="Enter">CONFIRM RETURN <kbd>ENTER</kbd></button></div>
 		</div>
-	) : game.awaitingDecision && game.turn === 'human' ? (
-		<div className="hand-command-bar" aria-label="Sequence controls">
-			<div className="hand-command-copy"><small>YOU CONTROL THE TABLE</small><strong>CONTINUE OR RESTART?</strong><p>{humanCanContinue ? 'The sequence came back to you.' : 'No legal continuation remains.'}</p></div>
-			<div className="hand-command-actions"><button className="machine-button primary" disabled={!canContinueNow} onClick={continueForHuman} aria-keyshortcuts="C">CONTINUE <kbd>C</kbd></button><button className="machine-button" onClick={restartForHuman} aria-keyshortcuts="R">CLEAR + RESTART <kbd>R</kbd></button></div>
-		</div>
 	) : (
 		<div className="hand-command-bar" aria-label="Turn controls">
-			<div className="hand-command-copy" aria-live="polite"><small>{game.turn === 'human' ? 'YOUR COMMAND' : 'OPPONENT ACTIVE'}</small><strong>{selectedCards.length > 0 ? `${selectedCards.length} × ${selectedCards[0]?.rank ?? ''}` : game.turn === 'human' ? 'MAKE YOUR MOVE' : 'STAND BY'}</strong><p>{selectionMessage}</p></div>
+			<div className="hand-command-copy" aria-live="polite"><small>{canRestartNow ? 'YOU CONTROL THE TABLE' : game.turn === 'human' ? 'YOUR COMMAND' : 'OPPONENT ACTIVE'}</small><strong>{selectedCards.length > 0 ? `${selectedCards.length} × ${selectedCards[0]?.rank ?? ''}` : canRestartNow ? 'PLAY OR RESET' : game.turn === 'human' ? 'MAKE YOUR MOVE' : 'STAND BY'}</strong><p>{selectionMessage}</p></div>
 			<div className="hand-command-actions">
 					<button className={`machine-button primary ${onboardingMode === 'guided' && [0, 1, 3].includes(coachStage) ? 'coach-target' : ''}`} disabled={!canPlayNow} onClick={humanPlay} aria-keyshortcuts="Enter">PLAY SELECTED <kbd>ENTER</kbd></button>
+					{canRestartNow && <button className="machine-button" onClick={restartForHuman} aria-keyshortcuts="R">RESET TABLE <kbd>R</kbd></button>}
 					{canDrawNow && (
 						<button className={`machine-button warning ${onboardingMode === 'guided' && coachStage === 2 ? 'coach-target' : ''}`} onClick={humanDraw} aria-keyshortcuts="D">DRAW {game.activeCards.length} <kbd>D</kbd></button>
 					)}
