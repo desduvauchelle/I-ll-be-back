@@ -16,6 +16,7 @@ import {
 
 type Player = 'human' | 'cpu'
 type Phase = 'playing' | 'exchange' | 'game-over'
+type OnboardingMode = 'prompt' | 'briefing' | 'guided' | 'complete' | 'off'
 
 interface GameState {
 	human: PlayingCard[]
@@ -46,16 +47,27 @@ function addLog(state: GameState, message: string): GameState {
 	return { ...state, log: [message, ...state.log].slice(0, 7) }
 }
 
-function freshGame(previous?: GameState): GameState {
+function freshGame(previous?: GameState, tutorial = false): GameState {
 	const fullDeck = shuffle(createDeck())
 	let human = fullDeck.slice(0, 8)
 	let cpu = fullDeck.slice(8, 16)
-	const drawPile = fullDeck.slice(16)
+	let drawPile = fullDeck.slice(16)
 	let starter: Player
 	let starterNote: string
 	let phase: Phase = 'playing'
 
-	if (!previous?.winner || !previous.loser) {
+	if (tutorial) {
+		const deck = createDeck()
+		const pick = (id: string) => deck.find((card) => card.id === id)!
+		human = ['0-spades-3', '0-hearts-3', '0-spades-4', '0-hearts-4', '0-diamonds-4', '0-spades-7', '0-hearts-J', '0-clubs-2'].map(pick)
+		cpu = ['0-clubs-3', '0-spades-5', '0-hearts-5', '0-diamonds-5', '0-hearts-8', '0-clubs-9', '0-diamonds-Q', '0-spades-A'].map(pick)
+		const reserved = new Set([...human, ...cpu].map((card) => card.id))
+		const rescue = ['0-spades-6', '0-hearts-6', '0-diamonds-6'].map(pick)
+		for (const card of rescue) reserved.add(card.id)
+		drawPile = [...rescue, ...shuffle(deck.filter((card) => !reserved.has(card.id)))]
+		starter = 'human'
+		starterNote = 'Training protocol engaged. You control the opening move.'
+	} else if (!previous?.winner || !previous.loser) {
 		let humanDraw: PlayingCard
 		let cpuDraw: PlayingCard
 		do {
@@ -229,14 +241,45 @@ function runComputerTurn(input: GameState): GameState {
 	return play ? playCards(state, 'cpu', play) : declineTurn(state, 'cpu')
 }
 
+const BRIEFING_STEPS = [
+	{
+		code: 'OBJECTIVE',
+		title: 'EMPTY YOUR HAND.',
+		body: 'You start with eight cards. Play them all before the Machine. Three is the lowest rank; two is the highest.',
+		visual: '8 → 0',
+	},
+	{
+		code: 'LEGAL PLAYS',
+		title: 'BEAT IT OR BUILD IT.',
+		body: 'A higher rank must use exactly the active number of cards. Adding the same rank increases that number.',
+		visual: '3 + 3 → 4 + 4',
+	},
+	{
+		code: 'ZERO TRUST',
+		title: 'THE DRAW CAN BE A BLUFF.',
+		body: 'You may claim you cannot play even when you can. Draw the active count, then play from your whole hand—or wait.',
+		visual: '? + DRAW → RETURN',
+	},
+	{
+		code: 'THE RETURN',
+		title: 'CONTROL COMES BACK AROUND.',
+		body: 'If everyone declines, the last successful player chooses to continue the sequence or clear the table and restart.',
+		visual: 'PLAY → PASS → RETURN',
+	},
+] as const
+
 function PlayingCardView({
 	card,
 	selected = false,
+	coached = false,
+	dimmed = false,
 	hidden = false,
 	onClick,
 }: {
 	card?: PlayingCard
 	selected?: boolean
+	coached?: boolean
+	dimmed?: boolean
 	hidden?: boolean
 	onClick?: () => void
 }) {
@@ -255,7 +298,7 @@ function PlayingCardView({
 	return onClick ? (
 		<button
 			type="button"
-			className={`playing-card ${selected ? 'is-selected' : ''}`}
+			className={`playing-card ${selected ? 'is-selected' : ''} ${coached ? 'is-coached' : ''} ${dimmed ? 'is-dimmed' : ''}`}
 			onClick={onClick}
 			aria-pressed={selected}
 			aria-label={`${card.rank} of ${card.suit}${selected ? ', selected' : ''}`}
@@ -268,6 +311,9 @@ function PlayingCardView({
 export function GameTable() {
 	const [game, setGame] = useState<GameState>(() => freshGame())
 	const [selected, setSelected] = useState<string[]>([])
+	const [onboardingMode, setOnboardingMode] = useState<OnboardingMode>('prompt')
+	const [briefingStep, setBriefingStep] = useState(0)
+	const [coachStage, setCoachStage] = useState(0)
 
 	const selectedCards = useMemo(
 		() => game.human.filter((card) => selected.includes(card.id)),
@@ -277,12 +323,25 @@ export function GameTable() {
 		? selectedCards.length === 1
 		: isLegalPlay(selectedCards, game.activeRank, game.activeCards.length)
 	const humanCanContinue = Boolean(chooseComputerPlay(game.human, game.activeRank, game.activeCards.length))
+	const coachedCards = useMemo(() => {
+		if (onboardingMode !== 'guided') return []
+		if (coachStage === 0) return game.human.filter((card) => card.rank === '3')
+		if (coachStage === 1 || coachStage === 3) {
+			return chooseComputerPlay(game.human, game.activeRank, game.activeCards.length) ?? []
+		}
+		return []
+	}, [coachStage, game.activeCards.length, game.activeRank, game.human, onboardingMode])
+	const coachedCardIds = useMemo(() => new Set(coachedCards.map((card) => card.id)), [coachedCards])
+	const guidedSelectionValid = onboardingMode !== 'guided' || ![0, 1, 3].includes(coachStage)
+		|| (selectedCards.length === coachedCards.length && selectedCards.every((card) => coachedCardIds.has(card.id)))
+	const playableSelection = legalSelection && guidedSelectionValid
 
 	useEffect(() => {
 		if (game.phase !== 'playing' || game.turn !== 'cpu') return
+		if (onboardingMode === 'prompt' || onboardingMode === 'briefing') return
 		const timer = window.setTimeout(() => setGame((current) => runComputerTurn(current)), 720)
 		return () => window.clearTimeout(timer)
-	}, [game.phase, game.turn, game.awaitingDecision, game.activeCards.length, game.cpu.length])
+	}, [game.phase, game.turn, game.awaitingDecision, game.activeCards.length, game.cpu.length, onboardingMode])
 
 	useEffect(() => {
 		if (game.turn !== 'human') setSelected([])
@@ -290,14 +349,21 @@ export function GameTable() {
 
 	function toggleCard(card: PlayingCard) {
 		if (game.phase === 'playing' && (game.turn !== 'human' || game.awaitingDecision)) return
+		if (onboardingMode === 'guided' && coachStage === 2) return
+		if (onboardingMode === 'guided' && [0, 1, 3].includes(coachStage) && !coachedCardIds.has(card.id)) return
 		setSelected((current) => current.includes(card.id)
 			? current.filter((id) => id !== card.id)
 			: [...current, card.id])
 	}
 
 	function humanPlay() {
-		if (!legalSelection || game.phase !== 'playing') return
+		if (!playableSelection || game.phase !== 'playing') return
 		setGame((current) => playCards(current, 'human', selectedCards))
+		if (onboardingMode === 'guided') {
+			if (coachStage === 0) setCoachStage(1)
+			else if (coachStage === 1) setCoachStage(2)
+			else if (coachStage === 3) setOnboardingMode('complete')
+		}
 		setSelected([])
 	}
 
@@ -310,6 +376,19 @@ export function GameTable() {
 				`You claim you cannot play and draw ${result.drawn.length}.`,
 			)
 		})
+		if (onboardingMode === 'guided' && coachStage === 2) setCoachStage(3)
+	}
+
+	function humanDecline() {
+		setGame((current) => declineTurn(current, 'human'))
+		if (onboardingMode === 'guided' && coachStage === 3) setOnboardingMode('complete')
+	}
+
+	function beginGuidedGame() {
+		setSelected([])
+		setCoachStage(0)
+		setGame(freshGame(undefined, true))
+		setOnboardingMode('guided')
 	}
 
 	function returnExchangeCard() {
@@ -331,9 +410,52 @@ export function GameTable() {
 			: game.awaitingDecision && game.turn === 'human'
 				? 'THE SEQUENCE CAME BACK TO YOU'
 				: game.turn === 'human' ? 'YOUR MOVE' : 'MACHINE THINKING'
+	const coachCopy = coachStage === 0
+		? { label: 'GUIDED MOVE 1 / 4', title: 'OPEN WITH THE PAIR OF 3s.', body: 'The glowing cards are your training move. Select both 3s, then play them to establish a pair.' }
+		: coachStage === 1
+			? game.turn === 'cpu'
+				? { label: 'GUIDED MOVE 2 / 4', title: 'WATCH THE COUNT.', body: 'The Machine is answering your pair. Notice what happens when it adds the same active rank.' }
+				: { label: 'GUIDED MOVE 2 / 4', title: `ANSWER ${game.activeCards.length} × ${game.activeRank}.`, body: 'A higher rank needs exactly the current count. The glowing cards form your legal response.' }
+			: coachStage === 2
+				? game.turn === 'cpu'
+					? { label: 'GUIDED MOVE 3 / 4', title: 'EXPECT A COUNTERPLAY.', body: 'The Machine is raising the rank. Your next lesson is the move that gives the game its name.' }
+					: { label: 'GUIDED MOVE 3 / 4', title: 'BLUFF THE DRAW.', body: `Press “I CAN'T PLAY — DRAW ${game.activeCards.length}.” You are allowed to do this even if a legal play is already in your hand.` }
+				: { label: 'GUIDED MOVE 4 / 4', title: 'COME BACK NOW—or LATER.', body: 'The draw completed a legal response. Play the glowing set immediately, or decline and wait for the sequence to return.' }
+	const briefing = BRIEFING_STEPS[briefingStep]!
 
 	return (
 		<div className="game-console">
+			{(onboardingMode === 'prompt' || onboardingMode === 'briefing') && (
+				<div className="onboarding-shade" role="dialog" aria-modal="true" aria-labelledby="onboarding-title">
+					<div className="onboarding-card">
+						<div className="onboarding-top"><span>FIRST-CONTACT PROTOCOL</span><b>{onboardingMode === 'prompt' ? '00 / 04' : `${String(briefingStep + 1).padStart(2, '0')} / 04`}</b></div>
+						{onboardingMode === 'prompt' ? (
+							<>
+								<small>NEW PLAYER DETECTED</small>
+								<h2 id="onboarding-title">WANT A GUIDED<br />FIRST GAME?</h2>
+								<p>We&apos;ll explain the rules, then map out your first four moves at the table. You&apos;ll learn by beating—and bluffing—the Machine.</p>
+								<div className="onboarding-actions"><button className="machine-button primary" onClick={() => setOnboardingMode('briefing')}>TEACH ME THE GAME</button><button className="machine-button" onClick={() => setOnboardingMode('off')}>I KNOW THE RULES</button></div>
+							</>
+						) : (
+							<>
+								<small>{briefing.code}</small>
+								<h2 id="onboarding-title">{briefing.title}</h2>
+								<div className="onboarding-visual">{briefing.visual}</div>
+								<p>{briefing.body}</p>
+								<div className="onboarding-dots">{BRIEFING_STEPS.map((step, index) => <i key={step.code} className={index <= briefingStep ? 'active' : ''} />)}</div>
+								<div className="onboarding-actions"><button className="machine-button primary" onClick={() => briefingStep === BRIEFING_STEPS.length - 1 ? beginGuidedGame() : setBriefingStep((step) => step + 1)}>{briefingStep === BRIEFING_STEPS.length - 1 ? 'BEGIN GUIDED GAME' : 'NEXT PROTOCOL'}</button><button className="machine-button" onClick={() => setOnboardingMode('off')}>SKIP TRAINING</button></div>
+							</>
+						)}
+					</div>
+				</div>
+			)}
+			{(onboardingMode === 'guided' || onboardingMode === 'complete') && (
+				<div className={`coach-strip ${onboardingMode === 'complete' ? 'complete' : ''}`} role="status">
+					<div className="coach-index">{onboardingMode === 'complete' ? '✓' : `0${coachStage + 1}`}</div>
+					<div><small>{onboardingMode === 'complete' ? 'TRAINING COMPLETE' : coachCopy.label}</small><strong>{onboardingMode === 'complete' ? 'YOU ARE OPERATIONAL.' : coachCopy.title}</strong><p>{onboardingMode === 'complete' ? 'The guardrails are off. Read the count, question every draw, and empty your hand.' : coachCopy.body}</p></div>
+					<button onClick={() => setOnboardingMode('off')}>{onboardingMode === 'complete' ? 'ENTER FREE PLAY' : 'EXIT TRAINING'}</button>
+				</div>
+			)}
 			<div className="game-statusbar">
 				<div><span>GAME</span><strong>{String(game.gameNumber).padStart(2, '0')}</strong></div>
 				<div><span>YOU</span><strong>{game.humanWins}</strong></div>
@@ -377,6 +499,8 @@ export function GameTable() {
 									key={card.id}
 									card={card}
 									selected={selected.includes(card.id)}
+									coached={onboardingMode === 'guided' && coachedCardIds.has(card.id) && game.turn === 'human'}
+									dimmed={onboardingMode === 'guided' && game.turn === 'human' && !coachedCardIds.has(card.id)}
 									onClick={() => toggleCard(card)}
 								/>
 							))}
@@ -416,12 +540,12 @@ export function GameTable() {
 						<div className="decision-card">
 							<small>{game.turn === 'human' ? 'SELECT MATCHING CARDS' : 'OPPONENT ACTIVE'}</small>
 							<h2>{selectedCards.length > 0 ? `${selectedCards.length} × ${selectedCards[0]?.rank ?? ''}` : 'MAKE YOUR MOVE'}</h2>
-							<button className="machine-button primary" disabled={game.turn !== 'human' || !legalSelection} onClick={humanPlay}>PLAY SELECTED</button>
+							<button className={`machine-button primary ${onboardingMode === 'guided' && [0, 1, 3].includes(coachStage) ? 'coach-target' : ''}`} disabled={game.turn !== 'human' || !playableSelection} onClick={humanPlay}>PLAY SELECTED</button>
 							{game.activeRank && game.turn === 'human' && !game.humanHasDrawn && !game.forcedContinuation && (
-								<button className="machine-button warning" onClick={humanDraw}>I CAN'T PLAY — DRAW {game.activeCards.length}</button>
+								<button className={`machine-button warning ${onboardingMode === 'guided' && coachStage === 2 ? 'coach-target' : ''}`} onClick={humanDraw}>I CAN'T PLAY — DRAW {game.activeCards.length}</button>
 							)}
 							{game.activeRank && game.turn === 'human' && game.humanHasDrawn && !game.forcedContinuation && (
-								<button className="machine-button" onClick={() => setGame((current) => declineTurn(current, 'human'))}>I'LL BE BACK LATER</button>
+								<button className={onboardingMode === 'guided' && coachStage === 3 ? 'machine-button coach-target-secondary' : 'machine-button'} onClick={humanDecline}>I'LL BE BACK LATER</button>
 							)}
 							<p className="legality-note">{selectedCards.length === 0
 								? game.activeRank ? `Beat ${game.activeRank} with exactly ${game.activeCards.length}, or add more ${game.activeRank}s.` : 'Open with any same-rank set.'
