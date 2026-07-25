@@ -1,8 +1,11 @@
 import type { Metadata } from 'next'
-import Image from 'next/image'
 import Link from 'next/link'
 import { localizedPath } from '@/lib/i18n-utils'
 import { buildPageMetadata } from '@/lib/seo'
+
+function HeroCard({ rank, suit, className = '' }: { rank: string; suit: string; className?: string }) {
+	return <span className={`hero-playing-card ${className}`} aria-hidden="true"><b>{rank}</b><i>{suit}</i><strong>{suit}</strong></span>
+}
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
 	const { locale } = await params
@@ -34,8 +37,19 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
 						<div className="hero-meta"><div><strong>2–6</strong><span>PLAYERS</span></div><div><strong>8</strong><span>CARDS EACH</span></div><div><strong>0</strong><span>TRUST REQUIRED</span></div></div>
 					</div>
 					<div className="hero-visual">
-						<div className="hero-image-frame"><Image src="/ill-be-back-rules-poster.png" alt="Mechanical hand playing cards at a steel table" fill priority sizes="(max-width: 900px) 100vw, 52vw" /></div>
-						<p>TACTICAL DECEPTION SYSTEM / BUILD 03→02</p>
+						<div className="hero-card-scene" role="img" aria-label="Matching threes level up the table from one card to a pair">
+							<div className="hero-scene-grid" aria-hidden="true" />
+							<div className="hero-card-side hero-card-side-left"><HeroCard rank="3" suit="♣" /><HeroCard rank="3" suit="♥" className="hero-card-raised" /></div>
+							<div className="hero-card-message">
+								<small>ADD THE SAME RANK</small>
+								<strong>I&apos;LL BE<br />BACK.</strong>
+								<div><span>1 × 3</span><b>→</b><span>2 × 3</span></div>
+								<p>LEVEL UP THE COUNT.</p>
+							</div>
+							<div className="hero-card-side hero-card-side-right"><HeroCard rank="4" suit="♠" /><HeroCard rank="4" suit="♦" className="hero-card-raised" /></div>
+							<div className="hero-mini-deck" aria-hidden="true"><span>IBB</span></div>
+						</div>
+						<p>ONE DECK / ZERO TRUST / SAY IT WHEN THE COUNT GOES UP</p>
 					</div>
 				</div>
 			</section>

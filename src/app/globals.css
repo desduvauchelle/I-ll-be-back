@@ -63,9 +63,27 @@ button { font: inherit; }
 .hero-meta strong { font-family: var(--display); font-size: 34px; font-weight: 400; }
 .hero-meta span { color: #7e8280; font-size: 9px; font-weight: 800; letter-spacing: .16em; }
 .hero-visual { align-self: stretch; display: flex; flex-direction: column; justify-content: center; min-width: 0; }
-.hero-image-frame { position: relative; width: 125%; height: 575px; border: 1px solid rgba(255,255,255,.3); box-shadow: -20px 26px 0 rgba(255,255,255,.04); }
-.hero-image-frame::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(8,9,8,.75), transparent 25%); pointer-events: none; }
-.hero-image-frame img { object-fit: cover; object-position: center; filter: contrast(1.08); }
+.hero-card-scene { width: 125%; height: 575px; position: relative; display: grid; grid-template-columns: 1fr 1.12fr 1fr; align-items: center; gap: 7px; overflow: hidden; padding: 54px 30px; border: 1px solid rgba(255,255,255,.3); background: radial-gradient(circle at 50% 47%, rgba(255,255,255,.13), transparent 34%), #111311; box-shadow: -20px 26px 0 rgba(255,255,255,.04); isolation: isolate; }
+.hero-scene-grid { position: absolute; inset: 0; z-index: -1; opacity: .55; background: repeating-linear-gradient(0deg, transparent 0 54px, rgba(255,255,255,.045) 55px), repeating-linear-gradient(90deg, transparent 0 54px, rgba(255,255,255,.045) 55px); }
+.hero-card-side { min-width: 0; display: flex; align-items: center; justify-content: center; }
+.hero-playing-card { flex: 0 0 104px; width: 104px; height: 154px; position: relative; display: block; margin-left: -50px; border: 1px solid #090a09; border-radius: 8px; background: #f1f0ea; color: #090a09; box-shadow: 0 16px 26px rgba(0,0,0,.48); transform: rotate(-7deg); }
+.hero-playing-card:first-child { margin-left: 0; }
+.hero-playing-card:nth-child(even) { transform: translateY(19px) rotate(7deg); }
+.hero-card-side-right .hero-playing-card { transform: rotate(7deg); }
+.hero-card-side-right .hero-playing-card:nth-child(even) { transform: translateY(-17px) rotate(-7deg); }
+.hero-playing-card b { position: absolute; top: 10px; left: 11px; font-family: var(--display); font-size: 29px; font-weight: 400; line-height: .8; }
+.hero-playing-card i { position: absolute; top: 37px; left: 13px; font-family: Arial, sans-serif; font-size: 17px; font-style: normal; }
+.hero-playing-card strong { position: absolute; inset: 0; display: grid; place-items: center; font-family: Arial, sans-serif; font-size: 48px; }
+.hero-card-message { z-index: 3; min-width: 0; display: grid; justify-items: center; padding: 34px 18px 29px; border: 1px solid #737773; background: rgba(8,9,8,.93); text-align: center; box-shadow: 12px 14px 0 rgba(255,255,255,.05); }
+.hero-card-message small { color: #898d89; font-size: 7px; font-weight: 900; letter-spacing: .18em; }
+.hero-card-message > strong { margin: 12px 0 23px; font-family: var(--display); font-size: clamp(49px, 4.4vw, 69px); font-weight: 400; line-height: .78; }
+.hero-card-message > div { display: flex; align-items: center; gap: 9px; }
+.hero-card-message > div span { padding: 8px 10px; border: 1px solid #777b78; font-family: var(--display); font-size: 19px; }
+.hero-card-message > div b { color: #737773; font-size: 14px; }
+.hero-card-message p { margin: 14px 0 0; color: #777b78; font-size: 7px; font-weight: 900; letter-spacing: .15em; }
+.hero-mini-deck { position: absolute; right: 26px; bottom: 22px; width: 45px; height: 64px; display: grid; place-items: center; border: 3px solid #dddeda; border-radius: 4px; outline: 1px solid #080908; background: repeating-linear-gradient(45deg, #111 0 4px, #a9aba7 4px 5px); box-shadow: 4px 4px 0 #555, 8px 8px 0 #202220; transform: rotate(4deg); }
+.hero-mini-deck::before { content: ''; position: absolute; inset: 5px; border: 1px solid white; background: rgba(0,0,0,.38); }
+.hero-mini-deck span { position: relative; font-family: var(--display); font-size: 11px; letter-spacing: .06em; }
 .hero-visual > p { color: #777b78; font-size: 9px; letter-spacing: .19em; text-align: right; }
 .rank-marquee { min-height: 75px; display: flex; justify-content: center; align-items: center; gap: clamp(9px, 1.5vw, 25px); padding: 12px 28px; overflow: hidden; white-space: nowrap; background: var(--paper); color: var(--ink); }
 .rank-marquee b { font-family: var(--display); font-size: 27px; font-weight: 400; }
@@ -488,7 +506,7 @@ kbd { display: inline-grid; place-items: center; min-width: 22px; min-height: 19
   .home-hero-grid { grid-template-columns: 1fr; padding-bottom: 50px; }
   .home-hero-copy { padding-bottom: 0; }
   .hero-visual { min-height: 480px; }
-  .hero-image-frame { width: 100%; height: 500px; }
+  .hero-card-scene { width: 100%; height: 500px; }
   .protocol-grid { grid-template-columns: 1fr 1fr; }
   .protocol-grid article:nth-child(2) { border-right: 0; }
   .protocol-grid article:last-child { grid-column: 1 / -1; border-top: 1px solid #b8b9b4; }
@@ -551,7 +569,20 @@ kbd { display: inline-grid; place-items: center; min-width: 22px; min-height: 19
   .hero-lede { font-size: 16px; }
   .hero-actions { display: grid; }
   .hero-meta { justify-content: space-between; gap: 15px; }
-  .hero-image-frame { height: 310px; }
+  .hero-card-scene { height: 360px; grid-template-columns: 1fr 1.15fr 1fr; gap: 0; padding: 34px 7px; }
+  .hero-playing-card { flex-basis: 72px; width: 72px; height: 106px; margin-left: -39px; border-radius: 5px; }
+  .hero-playing-card b { top: 7px; left: 8px; font-size: 21px; }
+  .hero-playing-card i { top: 27px; left: 9px; font-size: 12px; }
+  .hero-playing-card strong { font-size: 32px; }
+  .hero-card-message { padding: 24px 5px 20px; }
+  .hero-card-message small { font-size: 5px; letter-spacing: .1em; }
+  .hero-card-message > strong { margin: 10px 0 17px; font-size: 38px; }
+  .hero-card-message > div { gap: 4px; }
+  .hero-card-message > div span { padding: 6px; font-size: 14px; }
+  .hero-card-message > div b { font-size: 10px; }
+  .hero-card-message p { margin-top: 10px; font-size: 5px; letter-spacing: .09em; }
+  .hero-mini-deck { display: none; }
+  .hero-visual > p { text-align: left; line-height: 1.5; }
   .rank-marquee { justify-content: flex-start; overflow-x: auto; }
   .split-heading, .bluff-grid, .rules-hero { grid-template-columns: 1fr; gap: 40px; }
   .protocol-section, .bluff-section { padding-block: 80px; }
