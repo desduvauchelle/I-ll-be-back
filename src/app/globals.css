@@ -385,6 +385,7 @@ body:has(.play-page) > div > main { min-height: 0; }
 .possible-play-option:hover:not(:disabled) { border-color: #aaa; transform: translateY(-1px); }
 .possible-play-option.is-active { border-color: white; background: white; color: #0a0b0a; }
 .possible-play-option.is-active span { color: #555; }
+.possible-play-options > .possible-play-option:only-child:not(:disabled) { border-color: #d8dad7; background: rgba(255,255,255,.08); box-shadow: inset 0 0 0 1px rgba(255,255,255,.22), 0 0 16px rgba(255,255,255,.08); }
 .possible-play-option:focus { z-index: 2; outline: 3px solid white; outline-offset: 3px; background: #292c2a; color: white; box-shadow: 0 0 0 5px #111, 0 0 0 7px white, 0 7px 14px rgba(0,0,0,.5); transform: translateY(-2px); }
 .possible-play-option:focus::before { content: '▼'; position: absolute; top: -14px; left: 50%; color: white; translate: -50% 0; font-family: Arial, sans-serif; font-size: 8px; line-height: 1; text-shadow: 0 1px 3px black; }
 .possible-play-option.is-active:focus { background: white; color: #0a0b0a; box-shadow: 0 0 0 4px #0a0b0a, 0 0 0 7px white, 0 7px 14px rgba(0,0,0,.5); }

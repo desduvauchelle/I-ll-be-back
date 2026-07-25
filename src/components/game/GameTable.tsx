@@ -917,6 +917,16 @@ export function GameTable() {
 		else if (action === 'next-game') startNextGame()
 	}
 
+	function activatePossibleOption(option: HTMLButtonElement) {
+		const quickAction = option.dataset.quickAction
+		if (quickAction) {
+			runQuickAction(quickAction)
+			return
+		}
+		const play = suggestedPlays.find((suggestion) => suggestion.id === option.dataset.playId)
+		if (play) commitHumanPlay(play.cards)
+	}
+
 	function elementsInZone(zone: NavigationZone): HTMLButtonElement[] {
 		const selector = zone === 'actions'
 			? '.hand-command-actions button:not(:disabled)'
@@ -1014,19 +1024,26 @@ export function GameTable() {
 				event.preventDefault()
 				if (game.phase === 'exchange' && selectedCards.length === 1) {
 					returnExchangeCard()
-				} else if (canPlayNow) humanPlay()
+				} else if (canPlayNow) {
+					humanPlay()
+				} else {
+					const availableOptions = elementsInZone('combos')
+					if (availableOptions.length === 1) activatePossibleOption(availableOptions[0]!)
+				}
 				return
 			}
 			if (event.key === 'Enter' && focusedCombo) {
 				event.preventDefault()
-				const quickAction = focusedCombo.dataset.quickAction
-				if (quickAction) {
-					runQuickAction(quickAction)
+				activatePossibleOption(focusedCombo)
+				return
+			}
+			if (event.key === 'Enter' && !target?.closest('a, button')) {
+				const availableOptions = elementsInZone('combos')
+				if (availableOptions.length === 1) {
+					event.preventDefault()
+					activatePossibleOption(availableOptions[0]!)
 					return
 				}
-				const play = suggestedPlays.find((option) => option.id === focusedCombo.dataset.playId)
-				if (play) commitHumanPlay(play.cards)
-				return
 			}
 			if (target?.closest('input, textarea, select, a, button')) return
 		}
