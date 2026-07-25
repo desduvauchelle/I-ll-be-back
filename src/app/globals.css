@@ -379,8 +379,9 @@ body:has(.play-page) > div > main { min-height: 0; }
 .human-hand .playing-card { --card-lift: 0px; --card-spread: 0px; margin-left: -42px; translate: 0 var(--card-lift); transform: translateX(var(--card-spread)); }
 .human-hand .playing-card:first-child { margin-left: 0; }
 .human-hand .playing-card:is(:hover, :focus-visible) { --card-lift: -18px; z-index: 7; }
+.human-hand .playing-card.is-option-preview { --card-lift: -20px; box-shadow: 0 0 0 2px #bfc2be, 0 16px 28px rgba(0,0,0,.55), 0 0 22px rgba(255,255,255,.22); z-index: 5; }
 .human-hand .playing-card.is-selected { --card-lift: -27px; box-shadow: 0 0 0 3px #fff, 0 15px 30px rgba(0,0,0,.55); z-index: 6; }
-.human-hand .playing-card:is(:hover, :focus-visible, .is-selected) ~ .playing-card { --card-spread: 45px; }
+.human-hand .playing-card:is(:hover, :focus-visible, .is-selected, .is-option-preview) ~ .playing-card { --card-spread: 45px; }
 .human-hand .playing-card:focus-visible { outline: 3px solid white; outline-offset: 5px; }
 .human-hand .playing-card.is-coached:not(.is-selected) { animation: coachCard 1.15s ease-in-out infinite alternate; box-shadow: 0 0 0 3px white, 0 0 26px rgba(255,255,255,.42); z-index: 5; }
 .human-hand .playing-card.is-dimmed { opacity: .28; filter: grayscale(1); }
@@ -573,7 +574,7 @@ kbd { display: inline-grid; place-items: center; min-width: 22px; min-height: 19
   .human-hand .playing-card { flex: 0 0 68px; margin-left: -20px; scroll-snap-align: center; }
   .human-hand .playing-card:is(:hover, :focus-visible) { --card-lift: -12px; }
   .human-hand .playing-card.is-selected { --card-lift: -18px; }
-  .human-hand .playing-card:is(:hover, :focus-visible, .is-selected) ~ .playing-card { --card-spread: 18px; }
+  .human-hand .playing-card:is(:hover, :focus-visible, .is-selected, .is-option-preview) ~ .playing-card { --card-spread: 18px; }
   .mobile-hand-hint { position: absolute; top: 8px; left: 18px; display: block; color: #707470; font-size: 7px; font-weight: 900; letter-spacing: .14em; }
   .human-hand:focus-within .mobile-hand-hint { display: none; }
   .card-keyboard-helper { top: 5px; left: 18px; translate: 0 0; }
@@ -617,7 +618,7 @@ kbd { display: inline-grid; place-items: center; min-width: 22px; min-height: 19
   .human-hand { padding-inline: 14px; scroll-padding-inline: 14px; }
   .human-hand::after { flex-basis: 14px; }
   .human-hand .playing-card { flex-basis: 64px; margin-left: -18px; }
-  .human-hand .playing-card:is(:hover, :focus-visible, .is-selected) ~ .playing-card { --card-spread: 14px; }
+  .human-hand .playing-card:is(:hover, :focus-visible, .is-selected, .is-option-preview) ~ .playing-card { --card-spread: 14px; }
   .mobile-hand-hint { left: 14px; }
   .hand-command-actions { grid-template-columns: 1fr; }
   .hand-command-copy strong { font-size: 18px; }

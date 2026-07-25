@@ -505,6 +505,7 @@ const BRIEFING_STEPS = [
 function PlayingCardView({
 	card,
 	selected = false,
+	previewed = false,
 	coached = false,
 	dimmed = false,
 	hidden = false,
@@ -515,6 +516,7 @@ function PlayingCardView({
 }: {
 	card?: PlayingCard
 	selected?: boolean
+	previewed?: boolean
 	coached?: boolean
 	dimmed?: boolean
 	hidden?: boolean
@@ -543,7 +545,7 @@ function PlayingCardView({
 		<button
 			ref={buttonRef}
 			type="button"
-			className={`playing-card ${selected ? 'is-selected' : ''} ${coached ? 'is-coached' : ''} ${dimmed ? 'is-dimmed' : ''}`}
+			className={`playing-card ${selected ? 'is-selected' : ''} ${previewed ? 'is-option-preview' : ''} ${coached ? 'is-coached' : ''} ${dimmed ? 'is-dimmed' : ''}`}
 			style={transitionStyle}
 			onClick={onClick}
 			onFocus={onFocus}
@@ -566,6 +568,7 @@ export function GameTable() {
 	const [briefingStep, setBriefingStep] = useState(0)
 	const [coachStage, setCoachStage] = useState(0)
 	const [focusedCardIndex, setFocusedCardIndex] = useState(0)
+	const [previewedPlayId, setPreviewedPlayId] = useState<string | null>(null)
 	const [feedback, setFeedback] = useState<TableFeedback | null>(null)
 	const [drawAnimation, setDrawAnimation] = useState<DrawAnimation | null>(null)
 	const [gameMemoryReady, setGameMemoryReady] = useState(false)
@@ -585,6 +588,10 @@ export function GameTable() {
 	const suggestedPlays = useMemo(
 		() => suggestedPlaysFor(game.human, game.activeRank, game.activeCards.length),
 		[game.activeCards.length, game.activeRank, game.human],
+	)
+	const previewedCardIds = useMemo(
+		() => new Set(suggestedPlays.find((play) => play.id === previewedPlayId)?.cards.map((card) => card.id) ?? []),
+		[previewedPlayId, suggestedPlays],
 	)
 	const legalSelection = game.phase === 'exchange'
 		? selectedCards.length === 1
@@ -694,7 +701,10 @@ export function GameTable() {
 	}, [])
 
 	useEffect(() => {
-		if (game.turn !== 'human') setSelected([])
+		if (game.turn !== 'human') {
+			setSelected([])
+			setPreviewedPlayId(null)
+		}
 	}, [game.turn])
 
 	useEffect(() => {
@@ -760,22 +770,28 @@ export function GameTable() {
 		setOnboardingMode('briefing')
 	}
 
-	function humanPlay() {
-		if (!canPlayNow) return
-		const rank = selectedCards[0]?.rank
+	function commitHumanPlay(cards: PlayingCard[]) {
+		if (game.phase !== 'playing' || game.turn !== 'human' || !isLegalPlay(cards, game.activeRank, game.activeCards.length)) return
+		const rank = cards[0]?.rank
 		const previousCount = game.activeCards.length
 		const reinforcesRank = Boolean(rank && game.activeRank === rank)
-		const nextCount = previousCount + selectedCards.length
+		const nextCount = previousCount + cards.length
 		animateTableUpdate(() => {
-			setGame((current) => playCards(current, 'human', selectedCards))
+			setGame((current) => playCards(current, 'human', cards))
 			if (onboardingMode === 'guided') {
 				if (coachStage === 0) setCoachStage(1)
 				else if (coachStage === 1) setCoachStage(2)
 				else if (coachStage === 3) finishOnboarding()
 			}
 			setSelected([])
+			setPreviewedPlayId(null)
 		})
 		if (rank && reinforcesRank) announceFeedback(levelUpCue('human', rank, previousCount, nextCount), 1350)
+	}
+
+	function humanPlay() {
+		if (!canPlayNow) return
+		commitHumanPlay(selectedCards)
 	}
 
 	function humanDraw() {
@@ -1004,7 +1020,8 @@ export function GameTable() {
 			}
 			if (event.key === 'Enter' && focusedCombo) {
 				event.preventDefault()
-				focusedCombo.click()
+				const play = suggestedPlays.find((option) => option.id === focusedCombo.dataset.playId)
+				if (play) commitHumanPlay(play.cards)
 				return
 			}
 			if (target?.closest('input, textarea, select, a, button')) return
@@ -1179,11 +1196,11 @@ export function GameTable() {
 						{turnControl}
 						{showSuggestedPlays && (
 							<div className="possible-plays" aria-label="Possible plays from your hand">
-								<div className="possible-plays-label"><span>POSSIBLE PLAYS</span><small>↑ ACTIONS · ↓ CARDS</small></div>
+								<div className="possible-plays-label"><span>POSSIBLE PLAYS</span><small>ENTER PLAYS · ↓ CARDS</small></div>
 								<div className="possible-play-options">
 									{suggestedPlays.map((play) => {
 										const active = selected.length === play.cards.length && play.cards.every((card) => selected.includes(card.id))
-										return <button key={play.id} type="button" className={`possible-play-option ${active ? 'is-active' : ''}`} aria-label={`${play.label} possible play${active ? ', cards selected' : ''}`} aria-pressed={active} onClick={() => selectSuggestedPlay(play)}><span>[</span><b>{play.label}</b><span>]</span></button>
+										return <button key={play.id} type="button" data-play-id={play.id} className={`possible-play-option ${active ? 'is-active' : ''}`} aria-label={`${play.label} possible play. Press Enter to play${active ? ', cards selected' : ''}`} aria-pressed={active} onFocus={() => setPreviewedPlayId(play.id)} onBlur={() => setPreviewedPlayId(null)} onMouseEnter={() => setPreviewedPlayId(play.id)} onMouseLeave={(event) => { if (document.activeElement !== event.currentTarget) setPreviewedPlayId(null) }} onClick={() => selectSuggestedPlay(play)}><span>[</span><b>{play.label}</b><span>]</span></button>
 									})}
 								</div>
 							</div>
@@ -1199,6 +1216,7 @@ export function GameTable() {
 									tabIndex={index === focusedCardIndex ? 0 : -1}
 									onFocus={() => { setFocusedCardIndex(index); zoneIndexRef.current.cards = index }}
 									selected={selected.includes(card.id)}
+									previewed={previewedCardIds.has(card.id)}
 									coached={onboardingMode === 'guided' && coachedCardIds.has(card.id) && game.turn === 'human'}
 									dimmed={onboardingMode === 'guided' && game.turn === 'human' && !coachedCardIds.has(card.id)}
 									onClick={() => toggleCard(card)}
