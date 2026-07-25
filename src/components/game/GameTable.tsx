@@ -1058,25 +1058,25 @@ export function GameTable() {
 	const turnControl = game.phase === 'game-over' ? (
 		<div className="hand-command-bar game-result" aria-label="Game result">
 			<div className="hand-command-copy"><small>FINAL STATUS</small><strong>{game.winner === 'human' ? 'YOU GOT OUT.' : 'YOU WERE LEFT BEHIND.'}</strong><p>{game.winner === 'human' ? 'The Machine surrenders its best card next game.' : 'Your best card belongs to the Machine next game.'}</p></div>
-			<div className="hand-command-actions"><button className="machine-button primary" onClick={startNextGame} aria-keyshortcuts="Enter">PLAY NEXT GAME <kbd>ENTER</kbd></button></div>
+			<div className="hand-command-actions"><button className="machine-button primary" onClick={startNextGame} aria-keyshortcuts="Enter">PLAY NEXT GAME</button></div>
 		</div>
 	) : game.phase === 'exchange' ? (
 		<div className="hand-command-bar" aria-label="Card exchange controls">
 			<div className="hand-command-copy"><small>THE MACHINE GAVE YOU {exchangeCard ? `${exchangeCard.rank} OF ${exchangeCard.suit.toUpperCase()}` : 'ITS BEST CARD'}</small><strong>WHAT CARD ARE YOU GIVING BACK?</strong><p>Select one card from your hand with Space, then press Enter to return it.</p></div>
-			<div className="hand-command-actions"><button className="machine-button primary" disabled={!legalSelection} onClick={returnExchangeCard} aria-keyshortcuts="Enter">CONFIRM RETURN <kbd>ENTER</kbd></button></div>
+			<div className="hand-command-actions"><button className="machine-button primary" disabled={!legalSelection} onClick={returnExchangeCard} aria-keyshortcuts="Enter">CONFIRM RETURN</button></div>
 		</div>
 	) : (
 		<div className="hand-command-bar" aria-label="Turn controls">
 			<div className="hand-command-copy" aria-live="polite"><small>{canRestartNow ? 'YOU CONTROL THE TABLE' : game.turn === 'human' ? 'YOUR COMMAND' : 'OPPONENT ACTIVE'}</small><strong>{selectedCards.length > 0 ? `${selectedCards.length} × ${selectedCards[0]?.rank ?? ''}` : canRestartNow ? 'PLAY OR RESET' : game.turn === 'human' ? 'MAKE YOUR MOVE' : 'STAND BY'}</strong><p>{selectionMessage}</p></div>
 			<div className="hand-command-actions">
-					<button className={`machine-button primary ${onboardingMode === 'guided' && [0, 1, 3].includes(coachStage) ? 'coach-target' : ''}`} disabled={!canPlayNow} onClick={humanPlay} aria-keyshortcuts="Enter">PLAY SELECTED <kbd>ENTER</kbd></button>
-					{canRestartNow && <button className="machine-button" onClick={restartForHuman} aria-keyshortcuts="Enter">RESET TABLE <kbd>ENTER</kbd></button>}
+					<button className={`machine-button primary ${onboardingMode === 'guided' && [0, 1, 3].includes(coachStage) ? 'coach-target' : ''}`} disabled={!canPlayNow} onClick={humanPlay} aria-keyshortcuts="Enter">PLAY SELECTED</button>
+					{canRestartNow && <button className="machine-button" onClick={restartForHuman} aria-keyshortcuts="Enter">RESET TABLE</button>}
 					{canDrawNow && (
-						<button className={`machine-button warning ${onboardingMode === 'guided' && coachStage === 2 ? 'coach-target' : ''}`} onClick={humanDraw} aria-keyshortcuts="Enter">DRAW {game.activeCards.length} <kbd>ENTER</kbd></button>
+						<button className={`machine-button warning ${onboardingMode === 'guided' && coachStage === 2 ? 'coach-target' : ''}`} onClick={humanDraw} aria-keyshortcuts="Enter">DRAW {game.activeCards.length}</button>
 					)}
-				{canPassNow && onboardingMode !== 'guided' && <button className="machine-button" onClick={humanPass} aria-keyshortcuts="Enter">PASS TURN <kbd>ENTER</kbd></button>}
+				{canPassNow && onboardingMode !== 'guided' && <button className="machine-button" onClick={humanPass} aria-keyshortcuts="Enter">PASS TURN</button>}
 				{game.activeRank && game.turn === 'human' && game.humanHasDrawn && onboardingMode === 'guided' && !game.forcedContinuation && (
-					<button className={coachStage === 3 ? 'machine-button coach-target-secondary' : 'machine-button'} onClick={humanDecline} aria-keyshortcuts="Enter">I&apos;LL BE BACK LATER <kbd>ENTER</kbd></button>
+					<button className={coachStage === 3 ? 'machine-button coach-target-secondary' : 'machine-button'} onClick={humanDecline} aria-keyshortcuts="Enter">I&apos;LL BE BACK LATER</button>
 				)}
 			</div>
 		</div>
@@ -1199,14 +1199,9 @@ export function GameTable() {
 					<div className="human-zone">
 						<div className="zone-label"><span>YOUR HAND</span><b>{game.human.length} cards</b></div>
 						{turnControl}
-						{game.turn === 'human' && (
-							<div className="game-keyboard-guide" aria-label="Keyboard controls">
-								{game.phase === 'exchange' ? <><kbd>←</kbd><kbd>→</kbd><span>MOVE</span><i /><kbd>SPACE</kbd><span>SELECT CARD</span><i /><kbd>ENTER</kbd><span>RETURN CARD</span></> : <><kbd>↑</kbd><kbd>↓</kbd><span>ZONES</span><i /><kbd>←</kbd><kbd>→</kbd><span>MOVE</span><i /><kbd>SPACE</kbd><span>SELECT CARD</span><i /><kbd>ENTER</kbd><span>PLAY / ACTIVATE</span></>}
-							</div>
-						)}
 						{showSuggestedPlays && (
 							<div className="possible-plays" aria-label="Possible plays from your hand">
-								<div className="possible-plays-label"><span>POSSIBLE PLAYS</span><small>ENTER PLAYS · ↓ CARDS</small></div>
+								<div className="possible-plays-label"><span>POSSIBLE PLAYS</span><small>CHOOSE A COMBINATION</small></div>
 								<div className="possible-play-options">
 									{suggestedPlays.map((play) => {
 										const active = selected.length === play.cards.length && play.cards.every((card) => selected.includes(card.id))
@@ -1232,6 +1227,9 @@ export function GameTable() {
 									onClick={() => toggleCard(card)}
 								/>
 							))}
+						</div>
+						<div className="game-keyboard-guide" aria-label="Keyboard controls">
+							<kbd>↑</kbd><kbd>↓</kbd><span>CHANGE ZONES</span><i /><kbd>←</kbd><kbd>→</kbd><span>MOVE</span><i /><kbd>SPACE</kbd><span>SELECT CARD</span><i /><kbd>ENTER</kbd><span>COMMIT</span>
 						</div>
 					</div>
 				</div>

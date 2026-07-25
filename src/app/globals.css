@@ -365,8 +365,8 @@ body:has(.play-page) > div > main { min-height: 0; }
 .active-cards .playing-card:nth-child(even) { transform: rotate(3deg); }
 .active-cards .playing-card:first-child { margin-left: 0; }
 .open-table { display: grid; place-items: center; width: 280px; height: 130px; border: 1px dashed #565a57; color: #696d6a; font-size: 9px; font-weight: 900; letter-spacing: .16em; }
-.human-zone { min-width: 0; position: relative; z-index: 2; display: grid; grid-template-rows: auto auto auto auto 1fr; padding: 0 38px 20px; }
-.game-keyboard-guide { width: min(820px, calc(100% - 70px)); min-height: 27px; display: flex; align-items: center; justify-content: center; gap: 6px; margin: 4px auto 0; padding: 4px 10px; border: 1px solid #3f433f; background: #0c0e0d; color: #8e928f; overflow-x: auto; white-space: nowrap; font-size: 6px; font-weight: 900; letter-spacing: .08em; }
+.human-zone { min-width: 0; position: relative; z-index: 2; display: flex; flex-direction: column; padding: 0 38px 12px; }
+.game-keyboard-guide { width: 100%; min-height: 27px; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; gap: 6px; margin: 4px auto 0; padding: 4px 10px; border: 1px solid #3f433f; background: #0c0e0d; color: #8e928f; overflow-x: auto; white-space: nowrap; font-size: 6px; font-weight: 900; letter-spacing: .08em; }
 .game-keyboard-guide i { flex: 0 0 1px; width: 1px; height: 13px; margin-inline: 4px; background: #454945; }
 .game-keyboard-guide kbd { min-width: 18px; min-height: 16px; padding: 1px 4px; font-size: 6px; }
 .possible-plays { width: min(820px, calc(100% - 70px)); min-height: 42px; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 15px; margin: 6px auto 0; padding: 5px 8px 5px 13px; border: 1px solid #3f433f; background: rgba(13,15,14,.92); }
@@ -383,7 +383,7 @@ body:has(.play-page) > div > main { min-height: 0; }
 .possible-play-option:focus { z-index: 2; outline: 3px solid white; outline-offset: 3px; background: #292c2a; color: white; box-shadow: 0 0 0 5px #111, 0 0 0 7px white, 0 7px 14px rgba(0,0,0,.5); transform: translateY(-2px); }
 .possible-play-option:focus::before { content: '▼'; position: absolute; top: -14px; left: 50%; color: white; translate: -50% 0; font-family: Arial, sans-serif; font-size: 8px; line-height: 1; text-shadow: 0 1px 3px black; }
 .possible-play-option.is-active:focus { background: white; color: #0a0b0a; box-shadow: 0 0 0 4px #0a0b0a, 0 0 0 7px white, 0 7px 14px rgba(0,0,0,.5); }
-.human-hand { min-height: 145px; position: relative; display: flex; align-items: flex-end; justify-content: center; padding: 12px 70px 0; overflow: visible; }
+.human-hand { min-height: 145px; position: relative; flex: 1 1 auto; display: flex; align-items: flex-end; justify-content: center; padding: 12px 70px 0; overflow: visible; }
 .mobile-hand-hint { display: none; }
 .human-hand .playing-card { --card-lift: 0px; --card-spread: 0px; margin-left: -30px; translate: 0 var(--card-lift); transform: translateX(var(--card-spread)); }
 .human-hand .playing-card.is-rank-grouped { margin-left: -48px; }
