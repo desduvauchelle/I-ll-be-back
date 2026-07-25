@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type Ref } from 'react'
 import { flushSync } from 'react-dom'
+import Link from 'next/link'
 import {
 	RANKS,
 	SUIT_SYMBOLS,
@@ -583,7 +584,7 @@ function PlayingCardView({
 	) : <div className="playing-card" style={transitionStyle}>{content}</div>
 }
 
-export function GameTable() {
+export function GameTable({ homeHref = '/', rulesHref = '/rules' }: { homeHref?: string; rulesHref?: string }) {
 	// A stable opening state keeps server and browser markup identical. The real
 	// random deal is created after mount while the memory check covers the table.
 	const [game, setGame] = useState<GameState>(() => freshGame(undefined, true))
@@ -596,6 +597,7 @@ export function GameTable() {
 	const [feedback, setFeedback] = useState<TableFeedback | null>(null)
 	const [drawAnimation, setDrawAnimation] = useState<DrawAnimation | null>(null)
 	const [gameMemoryReady, setGameMemoryReady] = useState(false)
+	const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 	const gameConsoleRef = useRef<HTMLDivElement | null>(null)
 	const handCardRefs = useRef<Array<HTMLButtonElement | null>>([])
 	const zoneIndexRef = useRef<Record<NavigationZone, number>>({ actions: 0, combos: 0, cards: 0 })
@@ -1209,16 +1211,26 @@ export function GameTable() {
 					<button onClick={dismissOnboarding}>{onboardingMode === 'complete' ? 'ENTER FREE PLAY' : 'EXIT TRAINING'}</button>
 				</div>
 			)}
-			<div className="game-statusbar">
-				<div><span>GAME</span><strong>{String(game.gameNumber).padStart(2, '0')}</strong></div>
-				<div><span><i className="status-icon human" aria-hidden="true" /> YOU</span><strong>{game.humanWins}</strong></div>
-				<div className="game-status-spacer" aria-hidden="true" />
-				<div><span><i className="status-icon machine" aria-hidden="true" /> MACHINE</span><strong>{game.cpuWins}</strong></div>
-				<div className="game-utility-actions">
-					<button className="game-training-button" type="button" onClick={replayTraining}>TRAINING</button>
-					<button className="game-restart-button" type="button" onClick={restartGame} aria-label="Restart the current game with a fresh deal while keeping scores"><span aria-hidden="true">↻</span><b>RESTART</b></button>
-				</div>
-			</div>
+			<header className="game-header">
+				<Link className="game-header-leave" href={homeHref} aria-label="Leave the table and return home"><span aria-hidden="true">←</span><b>LEAVE TABLE</b></Link>
+				<div className="game-header-stat game-header-game"><span>GAME</span><strong>{String(game.gameNumber).padStart(2, '0')}</strong></div>
+				<div className="game-header-stat"><span><i className="status-icon human" aria-hidden="true" /> YOU</span><strong>{game.humanWins}</strong></div>
+				<div className="game-header-spacer" aria-hidden="true" />
+				<div className="game-header-stat"><span><i className="status-icon machine" aria-hidden="true" /> MACHINE</span><strong>{game.cpuWins}</strong></div>
+				<nav className="game-header-tools" aria-label="Game tools">
+					<button type="button" onClick={replayTraining}>TRAINING</button>
+					<button type="button" onClick={restartGame}><span aria-hidden="true">↻</span> RESTART</button>
+					<Link href={rulesHref}>RULES <span aria-hidden="true">↗</span></Link>
+				</nav>
+				<button className="game-header-menu-button" type="button" aria-expanded={mobileMenuOpen} aria-controls="game-mobile-menu" onClick={() => setMobileMenuOpen((open) => !open)}><span aria-hidden="true">☰</span><b>MENU</b></button>
+				{mobileMenuOpen && (
+					<nav className="game-mobile-menu" id="game-mobile-menu" aria-label="Game menu">
+						<Link href={rulesHref} onClick={() => setMobileMenuOpen(false)}>RULES <span aria-hidden="true">↗</span></Link>
+						<button type="button" onClick={() => { setMobileMenuOpen(false); replayTraining() }}>TRAINING</button>
+						<button type="button" onClick={() => { setMobileMenuOpen(false); restartGame() }}><span aria-hidden="true">↻</span> RESTART GAME</button>
+					</nav>
+				)}
+			</header>
 
 			<div className="game-grid">
 				<div className="game-board">
