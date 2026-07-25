@@ -17,7 +17,7 @@ export function Footer({ locale }: { dict: Dictionary; locale: string }) {
 					<Link href={localizedPath('/legal', locale)}>TERMS</Link>
 					<Link href={localizedPath('/cookies', locale)}>STORAGE</Link>
 				</nav>
-				<span>THE CARDS REMEMBER NOTHING. YOUR TRAINING CHOICE DOES.</span>
+				<span>LEAVE THE TABLE. YOUR BROWSER WILL REMEMBER IT.</span>
 			</div>
 		</footer>
 	)

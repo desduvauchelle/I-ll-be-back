@@ -22,6 +22,8 @@ type FeedbackSide = Player | 'center'
 type FeedbackTone = 'impact' | 'warning' | 'move'
 
 const ONBOARDING_STORAGE_KEY = 'ill-be-back:onboarding:v1'
+const GAME_STORAGE_KEY = 'ill-be-back:game:v1'
+const GAME_STORAGE_VERSION = 1
 
 interface ViewTransitionDocument {
 	startViewTransition?: (update: () => void) => unknown
@@ -47,6 +49,7 @@ interface GameState {
 	turn: Player
 	phase: Phase
 	humanHasDrawn: boolean
+	cpuHasDrawn: boolean
 	awaitingDecision: boolean
 	forcedContinuation: boolean
 	winner: Player | null
@@ -56,6 +59,12 @@ interface GameState {
 	cpuWins: number
 	starterNote: string
 	log: string[]
+}
+
+interface StoredGameSnapshot {
+	version: typeof GAME_STORAGE_VERSION
+	savedAt: string
+	game: GameState
 }
 
 interface FeedbackCue {
@@ -92,6 +101,64 @@ function countName(count: number): string {
 	if (count === 3) return 'TRIPLE'
 	if (count === 4) return 'FOUR OF A KIND'
 	return `${count}-CARD LEVEL`
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null
+}
+
+function isPlayer(value: unknown): value is Player {
+	return value === 'human' || value === 'cpu'
+}
+
+function isPlayingCard(value: unknown): value is PlayingCard {
+	if (!isRecord(value)) return false
+	return typeof value.id === 'string'
+		&& RANKS.includes(value.rank as Rank)
+		&& typeof value.suit === 'string'
+		&& value.suit in SUIT_SYMBOLS
+}
+
+function isGameState(value: unknown): value is GameState {
+	if (!isRecord(value)) return false
+
+	const cardGroups = ['human', 'cpu', 'drawPile', 'recycle', 'activeCards'] as const
+	for (const group of cardGroups) {
+		if (!Array.isArray(value[group]) || !value[group].every(isPlayingCard)) return false
+	}
+
+	const activeRank = value.activeRank
+	const activeCards = value.activeCards as PlayingCard[]
+	if (activeRank !== null && !RANKS.includes(activeRank as Rank)) return false
+	if (activeRank === null && activeCards.length !== 0) return false
+	if (activeRank !== null && !activeCards.every((card) => card.rank === activeRank)) return false
+
+	const allCards = cardGroups.flatMap((group) => value[group] as PlayingCard[])
+	if (new Set(allCards.map((card) => card.id)).size !== allCards.length) return false
+
+	const nullablePlayers = [value.lastSuccessful, value.winner, value.loser]
+	const validNullablePlayers = nullablePlayers.every((player) => player === null || isPlayer(player))
+	const validNumbers = [value.gameNumber, value.humanWins, value.cpuWins]
+		.every((number) => Number.isInteger(number) && (number as number) >= 0)
+
+	return isPlayer(value.turn)
+		&& ['playing', 'exchange', 'game-over'].includes(value.phase as string)
+		&& typeof value.humanHasDrawn === 'boolean'
+		&& typeof value.cpuHasDrawn === 'boolean'
+		&& typeof value.awaitingDecision === 'boolean'
+		&& typeof value.forcedContinuation === 'boolean'
+		&& validNullablePlayers
+		&& validNumbers
+		&& typeof value.starterNote === 'string'
+		&& Array.isArray(value.log)
+		&& value.log.every((entry) => typeof entry === 'string')
+}
+
+function readStoredGame(raw: string | null): GameState | null {
+	if (!raw) return null
+	const snapshot: unknown = JSON.parse(raw)
+	if (!isRecord(snapshot) || snapshot.version !== GAME_STORAGE_VERSION || !isGameState(snapshot.game)) return null
+	return snapshot.game
 }
 
 function levelUpCue(player: Player, rank: Rank, previousCount: number, nextCount: number): FeedbackCue {
@@ -173,6 +240,7 @@ function freshGame(previous?: GameState, tutorial = false): GameState {
 		turn: starter,
 		phase,
 		humanHasDrawn: false,
+		cpuHasDrawn: false,
 		awaitingDecision: false,
 		forcedContinuation: false,
 		winner: null,
@@ -230,6 +298,7 @@ function playCards(state: GameState, player: Player, cards: PlayingCard[]): Game
 		lastSuccessful: player,
 		turn: otherPlayer(player),
 		humanHasDrawn: false,
+		cpuHasDrawn: false,
 		awaitingDecision: false,
 		forcedContinuation: false,
 	}
@@ -256,6 +325,7 @@ function declineTurn(state: GameState, player: Player): GameState {
 		...state,
 		turn: nextPlayer,
 		humanHasDrawn: false,
+		cpuHasDrawn: false,
 		awaitingDecision: nextPlayer === state.lastSuccessful,
 		forcedContinuation: false,
 	}, `${playerName(player)} will be back.`)
@@ -271,6 +341,7 @@ function restartSequence(state: GameState, player: Player): GameState {
 		turn: player,
 		awaitingDecision: false,
 		humanHasDrawn: false,
+		cpuHasDrawn: false,
 		forcedContinuation: false,
 	}, `${playerName(player)} cleared the table and controls the restart.`)
 }
@@ -301,11 +372,11 @@ function planComputerTurn(input: GameState): ComputerTurnStep[] {
 	}
 
 	let play = chooseComputerPlay(state.cpu, state.activeRank, state.activeCards.length)
-	const bluffDraw = Boolean(state.activeRank) && (!play || Math.random() < 0.22)
+	const bluffDraw = Boolean(state.activeRank) && !state.cpuHasDrawn && (!play || Math.random() < 0.22)
 
 	if (bluffDraw) {
 		const result = drawCards(state, 'cpu')
-		state = addLog(result.state, `The Machine claims it cannot play and draws ${result.drawn.length}.`)
+		state = addLog({ ...result.state, cpuHasDrawn: true }, `The Machine claims it cannot play and draws ${result.drawn.length}.`)
 		steps.push({
 			wait: steps.length > 0 ? 900 : 520,
 			state,
@@ -468,6 +539,7 @@ export function GameTable() {
 	const [focusedCardIndex, setFocusedCardIndex] = useState(0)
 	const [feedback, setFeedback] = useState<TableFeedback | null>(null)
 	const [drawAnimation, setDrawAnimation] = useState<DrawAnimation | null>(null)
+	const [gameMemoryReady, setGameMemoryReady] = useState(false)
 	const handCardRefs = useRef<Array<HTMLButtonElement | null>>([])
 	const feedbackTimerRef = useRef<number | null>(null)
 	const drawTimerRef = useRef<number | null>(null)
@@ -505,11 +577,32 @@ export function GameTable() {
 	const canConfirmNow = game.phase === 'exchange' ? legalSelection : canPlayNow
 
 	useEffect(() => {
-		setGame(freshGame())
+		let restoredGame: GameState | null = null
 		try {
+			const rawGame = window.localStorage.getItem(GAME_STORAGE_KEY)
+			restoredGame = readStoredGame(rawGame)
+			if (rawGame && !restoredGame) window.localStorage.removeItem(GAME_STORAGE_KEY)
+			setGame(restoredGame ?? freshGame())
 			setOnboardingMode(window.localStorage.getItem(ONBOARDING_STORAGE_KEY) === 'complete' ? 'off' : 'prompt')
 		} catch {
+			try {
+				window.localStorage.removeItem(GAME_STORAGE_KEY)
+			} catch {
+				// Storage may be entirely unavailable under the current browser policy.
+			}
+			setGame(freshGame())
 			setOnboardingMode('prompt')
+		}
+		setGameMemoryReady(true)
+
+		if (restoredGame) {
+			announceFeedback({
+				side: 'human',
+				tone: 'move',
+				label: 'LOCAL MEMORY RESTORED',
+				title: `GAME ${String(restoredGame.gameNumber).padStart(2, '0')} RESUMED.`,
+				detail: `YOU ${restoredGame.humanWins} · MACHINE ${restoredGame.cpuWins} · ${restoredGame.turn === 'human' ? 'YOUR MOVE' : 'MACHINE TURN'}`,
+			}, 2200)
 		}
 	}, [])
 
@@ -547,6 +640,20 @@ export function GameTable() {
 			cpuTimeoutsRef.current.push(timer)
 		})
 	}, [game.phase, game.turn, game.awaitingDecision, game.activeCards.length, game.cpu.length, onboardingMode])
+
+	useEffect(() => {
+		if (!gameMemoryReady) return
+		const snapshot: StoredGameSnapshot = {
+			version: GAME_STORAGE_VERSION,
+			savedAt: new Date().toISOString(),
+			game,
+		}
+		try {
+			window.localStorage.setItem(GAME_STORAGE_KEY, JSON.stringify(snapshot))
+		} catch {
+			// A blocked or full storage area should never prevent play.
+		}
+	}, [game, gameMemoryReady])
 
 	useEffect(() => () => {
 		cpuTimeoutsRef.current.forEach((timer) => window.clearTimeout(timer))

@@ -21,7 +21,7 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
 			<header className="legal-hero site-container">
 				<p className="eyebrow"><span /> SYSTEM FILE / PRIVACY</p>
 				<h1>PRIVACY<br />PROTOCOL.</h1>
-				<p>This private preview keeps the game deliberately light on data. The cards remember nothing; your browser remembers only whether you dismissed or completed training.</p>
+				<p>The public game keeps data deliberately local. Your browser remembers training and the current table so you can return without creating an account.</p>
 				<small>LAST UPDATED / JULY 25, 2026</small>
 			</header>
 
@@ -29,14 +29,14 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
 				<aside className="legal-index" aria-label="Policy summary">
 					<span>DATA STATUS</span>
 					<strong>MINIMAL</strong>
-					<p>NO ACCOUNT<br />NO AD TRACKING<br />NO SAVED MATCH HISTORY</p>
+					<p>NO ACCOUNT<br />NO AD TRACKING<br />DEVICE-LOCAL SAVE</p>
 				</aside>
 				<article className="legal-copy">
-					<section><span>01</span><div><h2>WHAT THE GAME STORES</h2><p>The game stores one preference in your browser&apos;s local storage: <code>ill-be-back:onboarding:v1</code>. Its value records that you completed or skipped the onboarding so the prompt does not return on your next visit from the same browser.</p></div></section>
-					<section><span>02</span><div><h2>WHAT THE GAME DOES NOT SAVE</h2><p>No account is required. Your hand, the Machine&apos;s hand, score, turn history, and current match exist only while the game is open and are not written to local storage. The current version does not use advertising or analytics trackers and does not sell personal information.</p></div></section>
+					<section><span>01</span><div><h2>WHAT THE GAME STORES</h2><p>The browser stores <code>ill-be-back:onboarding:v1</code> for your training choice and <code>ill-be-back:game:v1</code> for the resumable table. The table record includes both hands, draw and recycle piles, active cards, turn state, game number, win totals, and the recent action log.</p></div></section>
+					<section><span>02</span><div><h2>WHAT THE GAME DOES NOT SAVE</h2><p>No account is required, and the saved game is not uploaded to a game-owned player database. The current version does not use advertising or analytics trackers, build a cross-device match history, or sell personal information.</p></div></section>
 					<section><span>03</span><div><h2>ROUTINE HOSTING DATA</h2><p>The hosting service may process routine technical information needed to deliver and secure the site, such as an IP address, browser details, request time, and access or error logs. That processing is controlled by the hosting provider and may change independently of the game code.</p></div></section>
-					<section><span>04</span><div><h2>YOUR CONTROLS</h2><p>You can replay training at any time from the game&apos;s Turn Control panel. You can remove the saved choice through your browser&apos;s site-data controls; the onboarding prompt will appear again the next time you visit.</p><Link className="legal-link" href={localizedPath('/cookies', locale)}>READ THE STORAGE FILE <b>→</b></Link></div></section>
-					<section><span>05</span><div><h2>CHANGES + CONTACT</h2><p>If accounts, forms, analytics, advertising, or other data features are added, this policy will be updated before those features are used. For questions about this private preview, contact the site operator through the channel that provided you access.</p></div></section>
+					<section><span>04</span><div><h2>YOUR CONTROLS</h2><p>You can replay training from Turn Control. Clearing this site&apos;s browser data removes both the saved table and training choice, so the next visit begins fresh.</p><Link className="legal-link" href={localizedPath('/cookies', locale)}>READ THE STORAGE FILE <b>→</b></Link></div></section>
+					<section><span>05</span><div><h2>CHANGES + CONTACT</h2><p>If accounts, forms, analytics, advertising, or other data features are added, this policy will be updated before those features are used. For questions, contact the site operator through the channel that shared this game.</p></div></section>
 				</article>
 			</div>
 		</section>
