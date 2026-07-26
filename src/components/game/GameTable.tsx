@@ -75,7 +75,7 @@ interface FeedbackCue {
 	label: string
 	title: string
 	detail: string
-	accent?: 'ibb'
+	accent?: 'ibb' | 'victory'
 }
 
 interface TableFeedback extends FeedbackCue {
@@ -221,6 +221,13 @@ function levelUpCue(player: Player, rank: Rank, previousCount: number, nextCount
 		accent: player === 'human' ? 'ibb' : undefined,
 	}
 }
+
+const HUMAN_VICTORY_LINES = [
+	'I’LL BE BACK? I’M ALREADY OUT.',
+	'I CAME BACK. THE CARDS DIDN’T.',
+	'BACK FROM THE BRINK. OUT OF CARDS.',
+	'THE COMEBACK JUST CHECKED OUT.',
+] as const
 
 function addLog(state: GameState, message: string): GameState {
 	return { ...state, log: [message, ...state.log].slice(0, 7) }
@@ -613,6 +620,7 @@ export function GameTable({ homeHref = '/', rulesHref = '/rules' }: { homeHref?:
 	const cpuTimeoutsRef = useRef<number[]>([])
 	const wasHumanTurnRef = useRef(false)
 	const previousComboSignatureRef = useRef('')
+	const lastVictoryLineRef = useRef(-1)
 
 	const selectedCards = useMemo(
 		() => game.human.filter((card) => selected.includes(card.id)),
@@ -766,6 +774,20 @@ export function GameTable({ homeHref = '/', rulesHref = '/rules' }: { homeHref?:
 		}, duration)
 	}
 
+	function announceHumanVictory() {
+		let nextLine = Math.floor(Math.random() * HUMAN_VICTORY_LINES.length)
+		if (nextLine === lastVictoryLineRef.current) nextLine = (nextLine + 1) % HUMAN_VICTORY_LINES.length
+		lastVictoryLineRef.current = nextLine
+		announceFeedback({
+			side: 'center',
+			tone: 'impact',
+			accent: 'victory',
+			label: 'ZERO CARDS · VICTORY',
+			title: HUMAN_VICTORY_LINES[nextLine]!,
+			detail: 'HAND EMPTY. THE MACHINE OWES YOU ITS BEST CARD.',
+		}, 2200)
+	}
+
 	function startDrawAnimation(player: Player, count: number) {
 		if (count < 1) return
 		if (drawTimerRef.current) window.clearTimeout(drawTimerRef.current)
@@ -809,6 +831,7 @@ export function GameTable({ homeHref = '/', rulesHref = '/rules' }: { homeHref?:
 	function commitHumanPlay(cards: PlayingCard[]) {
 		if (game.phase !== 'playing' || game.turn !== 'human' || !isLegalPlay(cards, game.activeRank, game.activeCards.length)) return
 		const rank = cards[0]?.rank
+		const winsGame = cards.length === game.human.length
 		const previousCount = game.activeCards.length
 		const reinforcesRank = Boolean(rank && game.activeRank === rank)
 		const nextCount = previousCount + cards.length
@@ -822,7 +845,8 @@ export function GameTable({ homeHref = '/', rulesHref = '/rules' }: { homeHref?:
 			setSelected([])
 			setPreviewedPlayId(null)
 		})
-		if (rank && reinforcesRank) announceFeedback(levelUpCue('human', rank, previousCount, nextCount), 1350)
+		if (winsGame) announceHumanVictory()
+		else if (rank && reinforcesRank) announceFeedback(levelUpCue('human', rank, previousCount, nextCount), 1350)
 	}
 
 	function humanPlay() {
@@ -1241,7 +1265,7 @@ export function GameTable({ homeHref = '/', rulesHref = '/rules' }: { homeHref?:
 				<div className="game-board">
 					<div className="game-event-layer" aria-live="assertive" aria-atomic="true">
 						{feedback && (
-							<div key={feedback.id} className={`table-feedback side-${feedback.side} tone-${feedback.tone} ${feedback.accent === 'ibb' ? 'accent-ibb' : ''}`} role="status">
+							<div key={feedback.id} className={`table-feedback side-${feedback.side} tone-${feedback.tone} ${feedback.accent ? `accent-${feedback.accent}` : ''}`} role="status">
 								<small>{feedback.label}</small>
 								<strong>{feedback.title}</strong>
 								<span>{feedback.detail}</span>
