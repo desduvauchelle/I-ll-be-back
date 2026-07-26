@@ -59,6 +59,7 @@ button { font: inherit; }
 .home-hero-copy { padding: 70px 0 52px; position: relative; z-index: 2; }
 .home-hero-copy h1, .play-intro h1, .rules-hero h1 { margin: 0; font-family: var(--display); font-weight: 400; font-size: clamp(84px, 10vw, 158px); line-height: .78; letter-spacing: -.02em; }
 .home-hero-copy h1 em, .section-heading h2 em { font-style: normal; -webkit-text-stroke: 2px white; color: transparent; }
+.home-hero-copy h1 .landing-blood-accent { color: var(--blood-bright); -webkit-text-stroke: 0; }
 .hero-lede { max-width: 570px; margin: 38px 0 34px; color: #b9bcba; font-size: 18px; line-height: 1.65; }
 .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
 .hero-meta { margin-top: 50px; display: flex; gap: 43px; }
@@ -164,6 +165,7 @@ button { font: inherit; }
 .rules-hero-summary { align-self: stretch; display: flex; flex-direction: column; justify-content: center; padding: clamp(30px, 5vw, 70px); border: 1px solid #656965; background: repeating-linear-gradient(0deg, transparent 0 39px, rgba(255,255,255,.025) 40px), radial-gradient(circle at 85% 12%, rgba(255,255,255,.1), transparent 30%), #111311; box-shadow: 16px 16px 0 rgba(255,255,255,.04); }
 .rules-hero-summary > strong { color: #828682; font-size: 9px; letter-spacing: .17em; }
 .rules-hero-summary > p { max-width: 680px; margin: 20px 0 35px; font-size: clamp(20px, 2.25vw, 33px); line-height: 1.32; font-weight: 700; }
+.rules-blood-accent { color: var(--blood-bright); }
 .rules-rank-key { display: flex; align-items: center; gap: 11px; padding-top: 17px; border-top: 1px solid #4e524f; overflow: hidden; white-space: nowrap; }
 .rules-rank-key small { color: #777b78; font-size: 7px; font-weight: 900; letter-spacing: .14em; }
 .rules-rank-key b { font-family: var(--display); font-size: 19px; font-weight: 400; }

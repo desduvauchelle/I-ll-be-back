@@ -28,7 +28,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
 				<div className="site-container home-hero-grid">
 					<div className="home-hero-copy">
 						<p className="eyebrow"><span /> ZERO-TRUST CARD PROTOCOL</p>
-						<h1>I&apos;LL<br />BE <em>BACK.</em></h1>
+						<h1>I&apos;LL<br />BE <em className="landing-blood-accent">BACK.</em></h1>
 						<p className="hero-lede">Beat the rank. Build the count. Bluff the draw. A fast shedding game where “I can&apos;t play” never means what you think it means.</p>
 						<div className="hero-actions">
 							<Link href={localizedPath('/play', locale)} className="site-button site-button-light">PLAY THE MACHINE <span>→</span></Link>

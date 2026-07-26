@@ -39,7 +39,7 @@ export default async function RulesPage({ params }: { params: Promise<{ locale: 
 				</div>
 				<div className="rules-hero-summary">
 					<strong>THE WHOLE GAME IN ONE SENTENCE</strong>
-					<p>Add matching cards at the same rank to grow the required count—or play exactly that count at a higher rank. Whenever you grow the count, say “I&apos;ll be back.” First player with no cards wins.</p>
+					<p>Add matching cards at the same rank to grow the required count—or play exactly that count at a higher rank. Whenever you grow the count, say <span className="rules-blood-accent">“I&apos;ll be back.”</span> First player with no cards wins.</p>
 					<div className="rules-rank-key"><small>LOW</small><b>3</b><span>→</span><b>4 · 5 · 6 · 7 · 8 · 9 · 10 · J · Q · K · A</b><span>→</span><b>2</b><small>HIGH</small></div>
 				</div>
 			</header>
